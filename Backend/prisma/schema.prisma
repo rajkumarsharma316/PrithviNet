@@ -1,0 +1,244 @@
+// Prisma Schema for PrithviNet
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  REGIONAL_OFFICER
+  MONITORING_TEAM
+  INDUSTRY_USER
+  CITIZEN
+}
+
+enum ParameterType {
+  AIR
+  WATER
+  NOISE
+}
+
+enum IndustryStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+// ─── MODELS ─────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  password        String
+  role            Role      @default(CITIZEN)
+  phone           String?
+  
+  // Relations
+  regionId        String?
+  region          RegionalOffice? @relation(fields: [regionId], references: [id])
+  industryId      String?
+  industry        Industry?       @relation(fields: [industryId], references: [id])
+  
+  // Submissions
+  airDataEntries  AirData[]
+  waterDataEntries WaterData[]
+  noiseDataEntries NoiseData[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model RegionalOffice {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  lat       Float
+  lng       Float
+  address   String?
+  district  String
+  state     String   @default("Chhattisgarh")
+  
+  // Relations
+  users               User[]
+  industries          Industry[]
+  waterSources        WaterSource[]
+  monitoringLocations MonitoringLocation[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Industry {
+  id              String         @id @default(uuid())
+  name            String
+  type            String
+  registrationNo  String         @unique
+  lat             Float
+  lng             Float
+  address         String?
+  status          IndustryStatus @default(ACTIVE)
+  
+  // Relations
+  regionId        String
+  region          RegionalOffice @relation(fields: [regionId], references: [id])
+  users           User[]
+  monitoringLocations MonitoringLocation[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model WaterSource {
+  id       String @id @default(uuid())
+  name     String
+  type     String // River, Lake, Groundwater, etc.
+  lat      Float
+  lng      Float
+  
+  regionId String
+  region   RegionalOffice @relation(fields: [regionId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MonitoringLocation {
+  id       String        @id @default(uuid())
+  name     String
+  type     ParameterType // AIR, WATER, NOISE
+  lat      Float
+  lng      Float
+  
+  regionId   String
+  region     RegionalOffice @relation(fields: [regionId], references: [id])
+  industryId String?
+  industry   Industry?      @relation(fields: [industryId], references: [id])
+  
+  airData    AirData[]
+  waterData  WaterData[]
+  noiseData  NoiseData[]
+  alerts     Alert[]
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model MonitoringUnit {
+  id            String        @id @default(uuid())
+  name          String        // e.g. "Parts per million"
+  symbol        String        // e.g. "ppm"
+  parameterType ParameterType
+  
+  prescribedLimits PrescribedLimit[]
+  
+  createdAt     DateTime @default(now())
+}
+
+model PrescribedLimit {
+  id         String  @id @default(uuid())
+  parameter  String  // e.g. "PM2.5", "pH", "Laeq"
+  minValue   Float?
+  maxValue   Float?
+  category   String? // e.g. "Industrial", "Residential", "Silence Zone"
+  
+  unitId     String
+  unit       MonitoringUnit @relation(fields: [unitId], references: [id])
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── MONITORING DATA ────────────────────────────────────
+
+model AirData {
+  id           String   @id @default(uuid())
+  pm25         Float?
+  pm10         Float?
+  no2          Float?
+  so2          Float?
+  co           Float?
+  o3           Float?
+  aqi          Float?
+  timestamp    DateTime @default(now())
+  
+  locationId   String
+  location     MonitoringLocation @relation(fields: [locationId], references: [id])
+  submittedById String
+  submittedBy  User               @relation(fields: [submittedById], references: [id])
+  
+  createdAt    DateTime @default(now())
+}
+
+model WaterData {
+  id              String   @id @default(uuid())
+  ph              Float?
+  tds             Float?
+  turbidity       Float?
+  dissolvedOxygen Float?
+  bod             Float?
+  cod             Float?
+  timestamp       DateTime @default(now())
+  
+  locationId      String
+  location        MonitoringLocation @relation(fields: [locationId], references: [id])
+  submittedById   String
+  submittedBy     User               @relation(fields: [submittedById], references: [id])
+  
+  createdAt       DateTime @default(now())
+}
+
+model NoiseData {
+  id           String   @id @default(uuid())
+  laeq         Float?
+  lmax         Float?
+  lmin         Float?
+  timestamp    DateTime @default(now())
+  
+  locationId   String
+  location     MonitoringLocation @relation(fields: [locationId], references: [id])
+  submittedById String
+  submittedBy  User               @relation(fields: [submittedById], references: [id])
+  
+  createdAt    DateTime @default(now())
+}
+
+// ─── ALERTS ─────────────────────────────────────────────
+
+model Alert {
+  id           String       @id @default(uuid())
+  type         ParameterType
+  severity     AlertSeverity @default(WARNING)
+  message      String
+  parameter    String       // e.g. "PM2.5"
+  value        Float        // the breaching value
+  limitValue   Float        // the prescribed limit
+  status       AlertStatus  @default(ACTIVE)
+  
+  locationId   String
+  location     MonitoringLocation @relation(fields: [locationId], references: [id])
+  
+  escalatedToId String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

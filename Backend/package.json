@@ -1,0 +1,27 @@
+{
+  "name": "prithvinet-backend",
+  "version": "1.0.0",
+  "description": "PrithviNet Smart Environmental Monitoring Platform - Backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.0.0",
+    "@fastify/jwt": "^9.0.0",
+    "@prisma/client": "^6.5.0",
+    "bcryptjs": "^3.0.0",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.3.3",
+    "fastify-plugin": "^5.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.5.0"
+  }
+}
