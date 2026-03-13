@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Map as MapIcon, Activity, AlertTriangle,
   Wind, Droplets, Volume2, Building2, Factory, MapPin,
-  Ruler, Beaker, User, LogIn, LogOut, Bell, Settings, ChevronDown
+  Ruler, Beaker, User, LogIn, LogOut, Bell, TrendingUp,
+  List, Shield, Briefcase, Upload, Eye
 } from 'lucide-react';
 
 const Layout = () => {
@@ -13,11 +14,15 @@ const Layout = () => {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const isAdmin = user && ['SUPER_ADMIN', 'REGIONAL_OFFICER', 'MONITORING_TEAM'].includes(user.role);
+  const role = user?.role;
+  const isAdmin = role === 'SUPER_ADMIN';
+  const isOfficer = role === 'REGIONAL_OFFICER';
+  const isMonitoring = role === 'MONITORING_TEAM';
+  const isIndustry = role === 'INDUSTRY_USER';
+  const isLoggedIn = !!user;
 
   return (
     <div className="layout">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
           <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
@@ -29,31 +34,63 @@ const Layout = () => {
         </div>
 
         <nav className="sidebar-nav">
+          {/* ── PUBLIC PORTAL (visible to everyone) ── */}
           <SidebarSection label="PUBLIC PORTAL" />
           <SideLink to="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" />
           <SideLink to="/map" icon={<MapIcon size={18} />} label="Pollution Map" />
+          <SideLink to="/trends" icon={<TrendingUp size={18} />} label="YoY Trends" />
           <SideLink to="/forecast" icon={<Activity size={18} />} label="Forecasting" />
           <SideLink to="/alerts-panel" icon={<AlertTriangle size={18} />} label="Live Alerts" />
 
-          <SidebarSection label="MONITORING DATA" />
-          <SideLink to="/monitoring/air" icon={<Wind size={18} />} label="Air Quality" />
-          <SideLink to="/monitoring/water" icon={<Droplets size={18} />} label="Water Quality" />
-          <SideLink to="/monitoring/noise" icon={<Volume2 size={18} />} label="Noise Level" />
+          {/* ── EXPLORE (visible to everyone) ── */}
+          <SidebarSection label="EXPLORE" />
+          <SideLink to="/monitoring-locations" icon={<MapPin size={18} />} label="Mon. Locations" />
+          <SideLink to="/industries-list" icon={<Factory size={18} />} label="Industries" />
+          <SideLink to="/offices-list" icon={<Building2 size={18} />} label="Regional Offices" />
+          <SideLink to="/alerts-list" icon={<Bell size={18} />} label="All Alerts" />
 
-          <SideLink to="/alerts" icon={<Bell size={18} />} label="Alerts Mgmt" />
+          {/* ── MONITORING DATA: view for monitoring/officer/admin, submit ONLY for monitoring ── */}
+          {isLoggedIn && (isAdmin || isOfficer || isMonitoring) && <>
+            <SidebarSection label="MONITORING DATA" />
+            <SideLink to="/monitoring/air" icon={<Wind size={18} />} label="Air Quality" />
+            <SideLink to="/monitoring/water" icon={<Droplets size={18} />} label="Water Quality" />
+            <SideLink to="/monitoring/noise" icon={<Volume2 size={18} />} label="Noise Level" />
+          </>}
 
+          {/* Submit Data — ONLY for Monitoring Team */}
+          {isMonitoring && <>
+            <SidebarSection label="SUBMIT DATA" />
+            <SideLink to="/monitoring/air/submit" icon={<Upload size={18} />} label="Submit Air Data" />
+            <SideLink to="/monitoring/water/submit" icon={<Upload size={18} />} label="Submit Water Data" />
+            <SideLink to="/monitoring/noise/submit" icon={<Upload size={18} />} label="Submit Noise Data" />
+          </>}
+
+          {/* ── REGIONAL OFFICER — manage industries, stations, alerts ── */}
+          {(isOfficer || isAdmin) && <>
+            <SidebarSection label="MY REGION" />
+            <SideLink to="/region-dashboard" icon={<Shield size={18} />} label="Region Dashboard" />
+            <SideLink to="/alerts" icon={<Bell size={18} />} label="Alert Management" />
+          </>}
+
+          {/* ── INDUSTRY USER ── */}
+          {(isIndustry || isAdmin) && <>
+            <SidebarSection label="MY INDUSTRY" />
+            <SideLink to="/industry-dashboard" icon={<Briefcase size={18} />} label="Industry Dashboard" />
+          </>}
+
+          {/* ── ADMIN PANEL — read-only oversight + approval, NO create/delete ── */}
           {isAdmin && <>
-            <SidebarSection label="ADMIN PANEL" />
-            <SideLink to="/admin/offices" icon={<Building2 size={18} />} label="Offices" />
-            <SideLink to="/admin/industries" icon={<Factory size={18} />} label="Industries" />
-            <SideLink to="/admin/water-sources" icon={<Droplets size={18} />} label="Water Sources" />
-            <SideLink to="/admin/locations" icon={<MapPin size={18} />} label="Mon. Locations" />
+            <SidebarSection label="ADMIN (VIEW & APPROVE)" />
+            <SideLink to="/admin/offices" icon={<Eye size={18} />} label="View Offices" />
+            <SideLink to="/admin/industries" icon={<Eye size={18} />} label="View Industries" />
+            <SideLink to="/admin/water-sources" icon={<Eye size={18} />} label="View Water Sources" />
+            <SideLink to="/admin/locations" icon={<Eye size={18} />} label="View Locations" />
             <SideLink to="/admin/limits" icon={<Ruler size={18} />} label="Limits" />
             <SideLink to="/admin/units" icon={<Beaker size={18} />} label="Units" />
           </>}
         </nav>
 
-        {/* User panel at bottom */}
+        {/* User panel */}
         <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--glass-border)' }}>
           {user ? (
             <div className="sidebar-user">
@@ -78,7 +115,6 @@ const Layout = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
         <Outlet />
       </main>
