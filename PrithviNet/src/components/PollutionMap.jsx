@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
-import { ArrowRight, Info, Wind, Droplets, Volume2, Map as MapIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Info, Wind, Droplets, Volume2, Map as MapIcon } from 'lucide-react';
+import { getMapData } from '../api';
 
-// Custom icons using Leaflet divIcon
 const createCustomIcon = (color, value) => L.divIcon({
   className: 'custom-map-marker',
   html: `<div style="background: ${color}; border: 2px solid white; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 0 10px ${color}">
@@ -15,42 +14,57 @@ const createCustomIcon = (color, value) => L.divIcon({
   popupAnchor: [0, -18]
 });
 
-// Mock Data for Regional Offices & Stations
-const mapData = {
-  air: [
-    { id: 1, name: 'Raipur HQ', lat: 21.2514, lng: 81.6296, value: 145, status: 'Moderate', color: '#fbbf24', param: 'AQI' },
-    { id: 2, name: 'Bhilai Steel Plant Area', lat: 21.1938, lng: 81.3509, value: 210, status: 'Poor', color: '#ef4444', param: 'AQI' },
-    { id: 3, name: 'Bilaspur RO', lat: 22.0797, lng: 82.1409, value: 85, status: 'Good', color: '#10b981', param: 'AQI' },
-    { id: 4, name: 'Korba Industrial', lat: 22.3595, lng: 82.6824, value: 315, status: 'Severe', color: '#991b1b', param: 'AQI' },
-  ],
-  water: [
-    { id: 1, name: 'Mahanadi River Monitor', lat: 21.2514, lng: 81.6296, value: 8.2, status: 'Good', color: '#10b981', param: 'pH' },
-    { id: 2, name: 'Shivnath River (Durg)', lat: 21.1938, lng: 81.3509, value: 6.5, status: 'Moderate', color: '#fbbf24', param: 'pH' },
-    { id: 4, name: 'Hasdeo River (Korba)', lat: 22.3595, lng: 82.6824, value: 5.8, status: 'Poor', color: '#ef4444', param: 'pH' },
-  ],
-  noise: [
-    { id: 1, name: 'Raipur City Center', lat: 21.2514, lng: 81.6296, value: 78, status: 'Poor', color: '#ef4444', param: 'dB(A)' },
-    { id: 2, name: 'Bhilai Industrial', lat: 21.1938, lng: 81.3509, value: 82, status: 'Severe', color: '#991b1b', param: 'dB(A)' },
-    { id: 3, name: 'Bilaspur Residential', lat: 22.0797, lng: 82.1409, value: 55, status: 'Good', color: '#10b981', param: 'dB(A)' },
-  ]
+const getColor = (type, reading) => {
+  if (!reading) return '#64748b';
+  if (type === 'air') {
+    const aqi = reading.aqi;
+    if (aqi <= 100) return '#10b981';
+    if (aqi <= 200) return '#fbbf24';
+    if (aqi <= 300) return '#ef4444';
+    return '#991b1b';
+  }
+  if (type === 'water') {
+    const ph = reading.ph;
+    if (ph >= 6.5 && ph <= 8.5) return '#10b981';
+    if (ph >= 5.5 || ph <= 9.5) return '#fbbf24';
+    return '#ef4444';
+  }
+  if (type === 'noise') {
+    const laeq = reading.laeq;
+    if (laeq <= 55) return '#10b981';
+    if (laeq <= 75) return '#fbbf24';
+    return '#ef4444';
+  }
+  return '#64748b';
+};
+
+const getStatus = (color) => {
+  if (color === '#10b981') return 'Good';
+  if (color === '#fbbf24') return 'Moderate';
+  if (color === '#ef4444') return 'Poor';
+  if (color === '#991b1b') return 'Severe';
+  return 'N/A';
 };
 
 const PollutionMap = () => {
   const [activeTab, setActiveTab] = useState('air');
-  const navigate = useNavigate();
+  const [mapData, setMapData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleDeepDive = (id) => {
-    // In a real app we'd navigate to `/location/${id}`
-    alert(`Navigating to detailed view for station ID: ${id}`);
-  };
-
-  const currentData = mapData[activeTab];
+  useEffect(() => {
+    setLoading(true);
+    getMapData(activeTab).then(res => {
+      if (res.ok) setMapData(res.data);
+      else setMapData([]);
+      setLoading(false);
+    });
+  }, [activeTab]);
 
   return (
     <div className="glass-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Map Header Tabs */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '1rem', marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '1rem', marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
           <MapIcon size={18} color="var(--accent-primary)" />
           Regional Monitoring Map
         </h3>
@@ -64,55 +78,60 @@ const PollutionMap = () => {
 
       {/* Map Container */}
       <div style={{ flex: 1, position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, background: 'rgba(0,0,0,0.4)' }}>
+            <span className="spinner"></span>
+          </div>
+        )}
         <MapContainer 
-          center={[21.25, 81.62]} // Centered on Chhattisgarh
+          center={[21.25, 81.62]}
           zoom={6} 
           style={{ height: '100%', width: '100%', background: '#0a0f1c' }}
           zoomControl={false}
         >
-          {/* Dark CartoDB basemap for premium feel */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
 
-          {/* Render markers for current tab */}
-          {currentData.map(station => (
-            <React.Fragment key={station.id}>
-              {/* Fake heatmap glow using a circle marker underneath */}
-              <CircleMarker 
-                center={[station.lat, station.lng]}
-                radius={30}
-                pathOptions={{ color: station.color, fillColor: station.color, fillOpacity: 0.1, stroke: false }}
-              />
-              
-              <Marker 
-                position={[station.lat, station.lng]} 
-                icon={createCustomIcon(station.color, station.value)}
-              >
-                <Popup className="custom-popup">
-                  <div style={{ background: '#0f1523', color: 'white', padding: '12px', borderRadius: '8px', minWidth: '200px' }}>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#94a3b8' }}>{station.name}</h4>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '24px', fontWeight: 'bold' }}>{station.value}</span>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>{station.param}</span>
-                      <span style={{ marginLeft: 'auto', background: station.color, color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', textTransform: 'uppercase' }}>
-                        {station.status}
-                      </span>
+          {mapData.map(loc => {
+            const r = loc.latestReading;
+            const color = getColor(activeTab, r);
+            const value = activeTab === 'air' ? r?.aqi?.toFixed(0)
+              : activeTab === 'water' ? r?.ph?.toFixed(1)
+              : r?.laeq?.toFixed(0);
+            const statusLabel = getStatus(color);
+            const param = activeTab === 'air' ? 'AQI' : activeTab === 'water' ? 'pH' : 'dB(A)';
+
+            return (
+              <React.Fragment key={loc.id}>
+                <CircleMarker 
+                  center={[loc.lat || 21.25, loc.lng || 81.62]}
+                  radius={30}
+                  pathOptions={{ color, fillColor: color, fillOpacity: 0.1, stroke: false }}
+                />
+                <Marker 
+                  position={[loc.lat || 21.25, loc.lng || 81.62]} 
+                  icon={createCustomIcon(color, value || '–')}
+                >
+                  <Popup className="custom-popup">
+                    <div style={{ background: '#0f1523', color: 'white', padding: '12px', borderRadius: '8px', minWidth: '200px' }}>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#94a3b8' }}>{loc.name}</h4>
+                      <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#64748b' }}>{loc.region?.name || ''}</p>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '24px', fontWeight: 'bold' }}>{value || '—'}</span>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>{param}</span>
+                        <span style={{ marginLeft: 'auto', background: color, color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', textTransform: 'uppercase' }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      {r && <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{new Date(r.timestamp).toLocaleString()}</p>}
                     </div>
-                    <button 
-                      onClick={() => handleDeepDive(station.id)}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s', fontSize: '12px' }}
-                      onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                      onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                    >
-                      <Info size={14} /> Show More Info
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          ))}
+                  </Popup>
+                </Marker>
+              </React.Fragment>
+            );
+          })}
         </MapContainer>
       </div>
       
