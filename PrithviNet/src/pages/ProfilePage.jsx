@@ -81,7 +81,7 @@ export default function ProfilePage() {
               width: "72px",
               height: "72px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #10b981, #059669)",
+              background: "var(--govt-blue)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

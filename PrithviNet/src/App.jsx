@@ -31,7 +31,6 @@ import AdminUnitsPage from "./pages/admin/AdminUnitsPage";
 // Dashboard sub-views
 import MonitoringCards from "./components/MonitoringCards";
 import PollutionMap from "./components/PollutionMap";
-import ForecastCharts from "./components/ForecastCharts";
 import AlertsPanel from "./components/AlertsPanel";
 import YearOverYearTrends from "./components/YearOverYearTrends";
 
@@ -98,22 +97,6 @@ function App() {
                 </div>
               }
             />
-            <Route
-              path="forecast"
-              element={
-                <div
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "500px",
-                  }}
-                >
-                  <ForecastCharts />
-                </div>
-              }
-            />
-
             {/* List Pages */}
             <Route
               path="monitoring-locations"

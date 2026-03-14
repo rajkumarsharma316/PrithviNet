@@ -66,34 +66,17 @@ export default function LoginPage() {
             <div className="auth-logo-icon">
               <Activity size={24} color="white" />
             </div>
-            <h1 style={{ fontSize: "1.7rem", margin: 0, fontWeight: 650 }}>
-              Prithvi<span style={{ color: "var(--accent-secondary)" }}>Net</span>
+            <h1 style={{ fontSize: "1.7rem", margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>
+              Prithvi<span style={{ color: "var(--govt-blue)" }}>Net</span>
             </h1>
-            <p
-              style={{
-                color: "var(--text-secondary)",
-                fontSize: "0.85rem",
-                margin: "4px 0 0",
-              }}
-            >
+            <p className="text-box text-box-blue" style={{ fontSize: "0.85rem", margin: "8px 0 0" }}>
               Smart Environmental Monitoring
             </p>
           </div>
 
           {/* Quick Login */}
           <div style={{ marginBottom: "24px" }}>
-            <p
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--text-muted)",
-                marginBottom: "10px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontWeight: 600,
-              }}
-            >
-              Quick Access
-            </p>
+            <p className="label-box" style={{ marginBottom: "10px" }}>Quick Access</p>
             <div className="preset-grid">
               {PRESETS.map((p, i) => (
                 <button
@@ -112,7 +95,7 @@ export default function LoginPage() {
           </div>
 
           <div className="auth-divider">
-            <span>or sign in manually</span>
+            <span className="text-box text-box-grey" style={{ margin: 0, padding: "6px 12px" }}>or sign in manually</span>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
@@ -149,18 +132,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "0.85rem",
-              color: "var(--text-secondary)",
-              marginTop: "20px",
-            }}
-          >
+          <p className="text-box text-box-grey" style={{ textAlign: "center", fontSize: "0.85rem", marginTop: "20px", marginBottom: 0 }}>
             Don't have an account?{" "}
-            <Link to="/register" style={{ color: "#10b981", fontWeight: 600 }}>
-              Register
-            </Link>
+            <Link to="/register" style={{ color: "var(--govt-blue)", fontWeight: 600 }}>Register</Link>
           </p>
         </div>
       </div>

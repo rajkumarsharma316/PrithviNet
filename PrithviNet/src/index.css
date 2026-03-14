@@ -1,26 +1,29 @@
-@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Bright, soft dashboard palette */
-  --bg-page: #f4f7ff;
+  /* Government portal palette (Chhattisgarh / oneclick.cgstate.gov.in style) */
+  --bg-page: #f5f5f5;
   --surface-default: #ffffff;
-  --surface-subtle: #f7f9ff;
-  --border-subtle: #e0e7ff;
-  --border-strong: #c4d0ff;
+  --surface-subtle: #fafafa;
+  --border-subtle: #e0e0e0;
+  --border-strong: #bdbdbd;
 
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
+  --text-primary: #212121;
+  --text-secondary: #424242;
+  --text-muted: #757575;
 
-  --accent-primary: #fb923c; /* bright orange */
-  --accent-secondary: #ea580c; /* deeper orange */
-  --accent-warning: #facc15;
-  --accent-danger: #b91c1c;
+  --govt-blue: #1565c0;
+  --govt-blue-dark: #0d47a1;
+  --govt-blue-light: #e3f2fd;
+  --accent-primary: #1565c0;
+  --accent-secondary: #0d47a1;
+  --accent-warning: #f9a825;
+  --accent-danger: #c62828;
 
-  --font-display: "Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  --font-display: "Open Sans", Arial, sans-serif;
+  --font-body: "Open Sans", Arial, sans-serif;
+  --glass-border: var(--border-subtle);
+  --glass-bg: var(--surface-default);
 }
 
 * {
@@ -31,10 +34,7 @@
 
 body {
   font-family: var(--font-body);
-  background:
-    radial-gradient(circle at 0% 0%, #eef2ff 0, transparent 50%),
-    radial-gradient(circle at 100% 0%, #fee2e2 0, transparent 55%),
-    var(--bg-page);
+  background: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
   margin: 0;
@@ -42,7 +42,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Global sharp corners for main UI surfaces and controls */
+/* Government portal: subtle rounded corners */
 button,
 input,
 select,
@@ -63,7 +63,7 @@ select,
 .input-group input,
 .input-group select,
 .submit-fields-grid input {
-  border-radius: 0 !important;
+  border-radius: 2px;
 }
 
 h1,
@@ -94,19 +94,104 @@ body::before {
   content: none; /* remove dark gradient background glow */
 }
 
-/* ─── Glass Panel ───────────────────────────────── */
+/* ─── Coloured text boxes (most text in boxes) ───── */
+.text-box {
+  padding: 10px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: #fafafa;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.text-box:last-child { margin-bottom: 0; }
+
+.text-box-blue {
+  background: var(--govt-blue-light);
+  border-color: #90caf9;
+  color: var(--text-primary);
+}
+
+.text-box-green {
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+  color: #1b5e20;
+}
+
+.text-box-amber {
+  background: #fff8e1;
+  border-color: #ffe082;
+  color: #e65100;
+}
+
+.text-box-grey {
+  background: #eceff1;
+  border-color: #cfd8dc;
+  color: var(--text-secondary);
+}
+
+.text-box-danger {
+  background: #ffebee;
+  border-color: #ef9a9a;
+  color: #b91c1c;
+}
+
+/* Report body: paragraphs and list items in coloured boxes */
+.report-content h1,
+.report-content h2,
+.report-content h3 { margin-top: 1em; margin-bottom: 0.5em; }
+.report-content h1 { padding: 10px 14px; border-radius: 4px; background: var(--govt-blue); color: #fff; font-size: 1.2rem; }
+.report-content h2 { padding: 8px 12px; border-radius: 4px; background: var(--govt-blue-light); border: 1px solid #90caf9; color: var(--govt-blue-dark); font-size: 1.05rem; }
+.report-content h3 { padding: 6px 12px; border-radius: 4px; background: #eceff1; border: 1px solid #cfd8dc; color: var(--text-secondary); font-size: 0.95rem; }
+.report-content p {
+  padding: 10px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+.report-content ul { margin: 0 0 12px; padding: 0; list-style: none; }
+.report-content ul li {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background: #f5f5f5;
+}
+.report-content strong { color: var(--text-primary); }
+
+.heading-box {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 4px;
+  background: var(--govt-blue);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+}
+
+.label-box {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--govt-blue-dark);
+}
+
+/* ─── Glass Panel (govt card style) ─────────────── */
 .glass-panel {
   background: var(--surface-default);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
-  border-radius: 20px;
-  transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  transition: border-color 0.2s ease;
 }
 
 .glass-panel:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.12);
-  transform: translateY(-3px);
 }
 
 @keyframes cardFloat {
@@ -136,22 +221,71 @@ body::before {
 .sidebar {
   width: 260px;
   height: 100%;
-  padding: 24px 16px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-subtle);
-  background: var(--surface-subtle);
+  background: var(--surface-default);
   overflow-y: auto;
+}
+
+.sidebar-govt-header {
+  background: var(--govt-blue-dark);
+  color: #fff;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-govt-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--govt-blue);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-govt-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 2px;
+}
+
+.sidebar-app-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.sidebar-nav-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  min-height: 0;
 }
 
 .main-content {
   flex: 1;
   height: 100%;
   overflow-y: auto;
-  padding: 32px;
+  padding: 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background: var(--bg-page);
 }
 
 /* ─── Sidebar Nav ───────────────────────────────── */
@@ -162,11 +296,11 @@ body::before {
 }
 
 .sidebar-section-label {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 16px 12px 6px;
+  letter-spacing: 0.08em;
+  padding: 14px 14px 6px;
   font-weight: 600;
 }
 
@@ -174,24 +308,24 @@ body::before {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 0;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s;
-  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
 }
 
 .sidebar-link:hover {
-  background: #e5f0ff;
-  color: var(--accent-secondary);
+  background: var(--govt-blue-light);
+  color: var(--govt-blue-dark);
 }
 
 .sidebar-link.active {
-  color: var(--accent-primary);
-  background: #e3f5eb;
-  border-color: rgba(22, 101, 52, 0.2);
+  color: var(--govt-blue-dark);
+  background: var(--govt-blue-light);
+  border-left-color: var(--govt-blue);
 }
 
 .sidebar-logout-btn {
@@ -199,18 +333,19 @@ body::before {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border-radius: 2px;
+  font-size: 0.85rem;
   color: var(--accent-danger);
-  background: #fef2f2;
-  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: #fff;
+  border: 1px solid var(--border-subtle);
   width: 100%;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .sidebar-logout-btn:hover {
-  background: #fee2e2;
+  background: #ffebee;
+  border-color: #ef9a9a;
 }
 
 .sidebar-login-btn {
@@ -218,20 +353,19 @@ body::before {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 0.85rem;
+  border-radius: 2px;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, #166534, #15803d);
+  background: var(--govt-blue);
   width: 100%;
   justify-content: center;
-  transition: all 0.2s;
-  box-shadow: 0 3px 10px rgba(22, 101, 52, 0.25);
+  transition: background 0.2s;
+  border: 1px solid var(--govt-blue-dark);
 }
 
 .sidebar-login-btn:hover {
-  box-shadow: 0 6px 16px rgba(22, 101, 52, 0.35);
-  transform: translateY(-1px);
+  background: var(--govt-blue-dark);
 }
 
 /* ─── Scrollbar ─────────────────────────────────── */
@@ -267,19 +401,19 @@ body::before {
 }
 
 .status-good {
-  background: linear-gradient(135deg, #fefce8, #fef3c7);
-  color: #92400e;
-  border: 1px solid rgba(234, 179, 8, 0.6);
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
 }
 .status-moderate {
-  background: linear-gradient(135deg, #fff7ed, #fed7aa);
-  color: #9a3412;
-  border: 1px solid rgba(249, 115, 22, 0.6);
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
 }
 .status-poor {
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
-  color: #b91c1c;
-  border: 1px solid rgba(248, 113, 113, 0.6);
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
 }
 
 /* ─── Auth Pages ────────────────────────────────── */
@@ -308,13 +442,13 @@ body::before {
 .auth-logo-icon {
   width: 56px;
   height: 56px;
-  background: radial-gradient(circle at 30% 20%, #fee2c5, #fb923c);
-  border-radius: 16px;
+  background: var(--govt-blue);
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  box-shadow: 0 14px 40px rgba(249, 146, 60, 0.35);
+  color: #fff;
 }
 
 .preset-grid {
@@ -336,9 +470,9 @@ body::before {
 }
 
 .preset-btn:hover {
-  background: #fffbeb !important;
-  border-color: #fed7aa !important;
-  color: var(--accent-primary);
+  background: var(--govt-blue-light) !important;
+  border-color: var(--govt-blue) !important;
+  color: var(--govt-blue-dark);
 }
 
 .preset-btn:disabled {
@@ -394,7 +528,7 @@ body::before {
   padding: 12px 14px 12px 40px;
   background: #ffffff;
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 2px;
   color: var(--text-primary);
   font-size: 0.9rem;
   outline: none;
@@ -417,8 +551,8 @@ body::before {
 
 .input-group input:focus,
 .input-group select:focus {
-  border-color: rgba(234, 88, 12, 0.7);
-  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.35);
+  border-color: var(--govt-blue);
+  box-shadow: 0 0 0 2px var(--govt-blue-light);
 }
 
 .input-group input::placeholder {
@@ -439,23 +573,22 @@ body::before {
 .auth-submit {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--govt-blue);
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
-  border-radius: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--govt-blue-dark);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
-  box-shadow: 0 10px 30px rgba(234, 88, 12, 0.35);
+  transition: background 0.2s;
   margin-top: 6px;
 }
 
 .auth-submit:hover {
-  box-shadow: 0 16px 40px rgba(234, 88, 12, 0.5);
-  transform: translateY(-2px);
+  background: var(--govt-blue-dark);
 }
 
 .auth-submit:disabled {
@@ -510,37 +643,36 @@ body::before {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--govt-blue);
   color: white;
-  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.3);
+  border: 1px solid var(--govt-blue-dark);
 }
 
 .primary-btn:hover {
-  box-shadow: 0 18px 40px rgba(234, 88, 12, 0.45);
-  transform: translateY(-2px);
+  background: var(--govt-blue-dark);
 }
 
 .small-btn {
   padding: 6px 12px;
-  font-size: 0.78rem;
-  border-radius: 8px;
-  background: rgba(16, 185, 129, 0.1);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  font-size: 0.8rem;
+  border-radius: 2px;
+  background: var(--govt-blue-light);
+  color: var(--govt-blue-dark);
+  border: 1px solid var(--govt-blue);
 }
 
 .small-btn:hover {
-  background: rgba(16, 185, 129, 0.2);
+  background: #bbdefb;
 }
 
 .resolve-btn {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.2);
+  background: var(--govt-blue-light);
+  color: var(--govt-blue-dark);
+  border: 1px solid var(--govt-blue);
 }
 
 .resolve-btn:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: #bbdefb;
 }
 
 /* ─── Icon Button ───────────────────────────────── */

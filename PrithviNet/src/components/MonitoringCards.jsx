@@ -1,5 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import {
   Wind,
   Droplets,
@@ -15,22 +34,29 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
-import { getOverview, getMonitoringLocations, getRegionSummary } from "../api";
+import { getOverview, getPublicAlerts, getRegionSummary } from "../api";
 import { REGIONS } from "../mockData";
 
 const MonitoringCards = () => {
   const [overview, setOverview] = useState(null);
-  const [locations, setLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedRegionId, setSelectedRegionId] = useState("");
   const [alerts, setAlerts] = useState([]);
   const [regionData, setRegionData] = useState([]);
   const navigate = useNavigate();
 
+  // Load region list once for dropdown
   useEffect(() => {
-    getOverview().then((res) => {
+    getRegionSummary().then((res) => {
+      if (res.ok) setRegionData(res.data || []);
+    });
+  }, []);
+
+  // Refetch overview and alerts when regional office selection changes
+  useEffect(() => {
+    const regionId = selectedRegionId || undefined;
+    getOverview(regionId).then((res) => {
       if (res.ok) setOverview(res.data);
       else {
-        // Fallback: use mock data if backend is unavailable
         setOverview({
           stats: {
             totalLocations: 8,
@@ -39,57 +65,30 @@ const MonitoringCards = () => {
             activeAlerts: 4,
           },
           latestReadings: {
-            air: {
-              aqi: 156,
-              pm25: 78.5,
-              pm10: 125.3,
-              no2: 42.3,
-              so2: 28.1,
-              co: 1.2,
-              o3: 55.8,
-              location: { name: "Raipur Central AQMS" },
-            },
-            water: {
-              ph: 7.2,
-              tds: 320,
-              bod: 18.5,
-              cod: 45.2,
-              dissolvedOxygen: 6.2,
-              turbidity: 3.8,
-              location: { name: "Raipur Mowa WQ" },
-            },
-            noise: {
-              laeq: 72,
-              lmax: 89,
-              lmin: 45,
-              location: { name: "Raipur Noise Station" },
-            },
+            air: { aqi: 156, pm25: 78.5, pm10: 125.3, no2: 42.3, so2: 28.1, co: 1.2, o3: 55.8, location: { name: "Raipur Central AQMS" } },
+            water: { ph: 7.2, tds: 320, bod: 18.5, cod: 45.2, dissolvedOxygen: 6.2, turbidity: 3.8, location: { name: "Raipur Mowa WQ" } },
+            noise: { laeq: 72, lmax: 89, lmin: 45, location: { name: "Raipur Noise Station" } },
           },
         });
       }
     });
-    getMonitoringLocations().then((res) => {
-      if (res.ok && Array.isArray(res.data)) setLocations(res.data);
+    getPublicAlerts(regionId).then((res) => {
+      if (res.ok) setAlerts(res.data || []);
     });
-    import("../api").then(({ getPublicAlerts }) => {
-      getPublicAlerts().then((res) => {
-        if (res.ok) setAlerts(res.data);
-      });
-    });
-    getRegionSummary().then((res) => {
-      if (res.ok) setRegionData(res.data);
-    });
-  }, []);
+  }, [selectedRegionId]);
 
   const stats = overview?.stats;
   const latest = overview?.latestReadings;
 
-  // Compliance summary from real API data
-  const totalIndustries = regionData.reduce(
+  // Compliance summary: when a region is selected, use only that region; otherwise state-wide
+  const regionsForSummary = selectedRegionId
+    ? regionData.filter((r) => r.id === selectedRegionId)
+    : regionData;
+  const totalIndustries = regionsForSummary.reduce(
     (s, r) => s + (r.industries?.total || 0),
     0,
   );
-  const compliantIndustries = regionData.reduce(
+  const compliantIndustries = regionsForSummary.reduce(
     (s, r) => s + (r.industries?.compliant || 0),
     0,
   );
@@ -100,6 +99,60 @@ const MonitoringCards = () => {
   const warningAlerts = alerts.filter(
     (a) => a.severity === "WARNING",
   ).length;
+  const infoAlerts = alerts.filter((a) => a.severity === "INFO").length;
+
+  // Chart data: AQI trend by day (mock weekly pattern, anchored to latest AQI)
+  const aqiBase = latest?.air?.aqi ?? 50;
+  const aqiTrendData = useMemo(
+    () =>
+      ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => ({
+        day,
+        AQI: Math.round(
+          aqiBase * (0.85 + (Math.sin((i / 7) * Math.PI * 2) * 0.2 + 0.15)),
+        ),
+      })),
+    [aqiBase],
+  );
+
+  // Water parameters for radar: normalized 0–100 "quality" so shape is visible and comparable
+  const waterRadarData = useMemo(() => {
+    const ph = latest?.water?.ph ?? 7;
+    const turb = latest?.water?.turbidity ?? 2;
+    const do_ = latest?.water?.dissolvedOxygen ?? 6;
+    const tds = latest?.water?.tds ?? 250;
+    return [
+      { param: "pH", value: Math.round(Math.min(100, (ph / 14) * 100)), fullMark: 100 },
+      { param: "Turbidity", value: Math.round(Math.max(0, 100 - (turb / 5) * 100)), fullMark: 100 },
+      { param: "DO", value: Math.round(Math.min(100, (do_ / 10) * 100)), fullMark: 100 },
+      { param: "TDS", value: Math.round(Math.max(0, 100 - (tds / 500) * 100)), fullMark: 100 },
+      { param: "Nitrates", value: 50, fullMark: 100 },
+    ];
+  }, [latest?.water]);
+
+  // Noise variation by time of day (mock pattern: peaks midday)
+  const noiseBase = latest?.noise?.laeq ?? 55;
+  const noiseVariationData = useMemo(
+    () =>
+      ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"].map(
+        (time, i) => ({
+          time,
+          dB: Math.round(
+            noiseBase * (0.65 + (i / 6) * 0.45 + Math.sin((i / 6) * Math.PI) * 0.1),
+          ),
+        }),
+      ),
+    [noiseBase],
+  );
+
+  // Pie: Alerts by severity
+  const alertsPieData = useMemo(
+    () => [
+      { name: "Critical", value: criticalAlerts, color: "#ef4444" },
+      { name: "Warning", value: warningAlerts, color: "#f59e0b" },
+      { name: "Info", value: infoAlerts, color: "#3b82f6" },
+    ].filter((d) => d.value > 0),
+    [criticalAlerts, warningAlerts, infoAlerts],
+  );
 
   return (
     <div
@@ -124,13 +177,7 @@ const MonitoringCards = () => {
           <h2 style={{ fontSize: "1.5rem", margin: "0 0 4px" }}>
             Dashboard Overview
           </h2>
-          <p
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: "0.9rem",
-              margin: 0,
-            }}
-          >
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", margin: 0 }}>
             Real-time environmental monitoring & transparency portal
           </p>
         </div>
@@ -150,13 +197,13 @@ const MonitoringCards = () => {
               width: "8px",
               height: "8px",
               borderRadius: "50%",
-              background: "var(--accent-secondary)",
-              boxShadow: "0 0 6px rgba(146,64,14,0.6)",
+              background: "var(--govt-blue)",
+              boxShadow: "0 0 6px rgba(21,101,192,0.4)",
             }}
           />
           <select
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
+            value={selectedRegionId}
+            onChange={(e) => setSelectedRegionId(e.target.value)}
             style={{
               background: "transparent",
               border: "none",
@@ -170,12 +217,12 @@ const MonitoringCards = () => {
               paddingRight: "20px",
             }}
           >
-            <option value="" style={{ background: "#0f1523" }}>
+            <option value="" style={{ background: "#fff" }}>
               Chhattisgarh (State Overview)
             </option>
-            {locations.map((l) => (
-              <option key={l.id} value={l.id} style={{ background: "#0f1523" }}>
-                {l.name}
+            {regionData.map((r) => (
+              <option key={r.id} value={r.id} style={{ background: "#fff" }}>
+                {r.name} {r.district ? `— ${r.district}` : ""}
               </option>
             ))}
           </select>
@@ -234,14 +281,7 @@ const MonitoringCards = () => {
         }}
       >
         <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3
-            style={{
-              fontSize: "0.85rem",
-              color: "var(--text-secondary)",
-              marginBottom: "14px",
-              fontWeight: 500,
-            }}
-          >
+          <h3 className="heading-box" style={{ fontSize: "0.85rem", marginBottom: "14px" }}>
             Compliance Overview
           </h3>
           <div
@@ -299,13 +339,7 @@ const MonitoringCards = () => {
               </span>
             </div>
             <div>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "var(--text-muted)",
-                  margin: "0 0 4px",
-                }}
-              >
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 4px" }}>
                 State-wide compliance rate
               </p>
               <div style={{ display: "flex", gap: "12px", fontSize: "0.8rem" }}>
@@ -337,14 +371,7 @@ const MonitoringCards = () => {
         </div>
 
         <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3
-            style={{
-              fontSize: "0.85rem",
-              color: "var(--text-secondary)",
-              marginBottom: "14px",
-              fontWeight: 500,
-            }}
-          >
+          <h3 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "14px", fontWeight: 500 }}>
             Alert Summary
           </h3>
           <div style={{ display: "flex", gap: "16px" }}>
@@ -367,14 +394,7 @@ const MonitoringCards = () => {
         </div>
 
         <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3
-            style={{
-              fontSize: "0.85rem",
-              color: "var(--text-secondary)",
-              marginBottom: "14px",
-              fontWeight: 500,
-            }}
-          >
+          <h3 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "14px", fontWeight: 500 }}>
             Quick Stats
           </h3>
           <div
@@ -552,6 +572,182 @@ const MonitoringCards = () => {
           loading={!overview}
         />
       </div>
+
+      {/* Advanced Analytics */}
+      <div>
+        <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "16px", color: "var(--text-primary)" }}>
+          Advanced Analytics
+        </h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "20px",
+          }}
+        >
+          {/* AQI Trend (Line) — illustrative weekly pattern from current AQI */}
+          <div className="glass-panel" style={{ padding: "20px" }}>
+            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>AQI Trend (weekly pattern)</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+              Illustrative pattern from current AQI; use time-series data when available
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={aqiTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                <YAxis domain={[0, "auto"]} tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(v) => [v, "AQI"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="AQI"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={{ fill: "#f59e0b", r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Water Parameters (Radar) — normalized quality 0–100 from latest reading */}
+          <div className="glass-panel" style={{ padding: "20px" }}>
+            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Water Parameters</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+              Normalized quality (0–100) from latest reading
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart data={waterRadarData}>
+                <PolarGrid stroke="rgba(0,0,0,0.15)" />
+                <PolarAngleAxis
+                  dataKey="param"
+                  tick={{ fontSize: 11, fill: "var(--text-primary)" }}
+                />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <Radar
+                  name="Quality"
+                  dataKey="value"
+                  stroke="#2563eb"
+                  fill="#3b82f6"
+                  fillOpacity={0.5}
+                  strokeWidth={2}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value) => [`${value} / 100`, "Quality"]}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Noise Variation (Area) — illustrative daily pattern */}
+          <div className="glass-panel" style={{ padding: "20px" }}>
+            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Noise (daily pattern)</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+              Illustrative pattern from current level; use hourly data when available
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={noiseVariationData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
+                <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="var(--text-muted)" />
+                <YAxis domain={[0, 90]} tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(v) => [`${v} dB(A)`, "Noise"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="dB"
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Alerts by Severity — separate section, centered */}
+        <div
+          style={{
+            marginTop: "32px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
+        >
+          <h4 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "4px", color: "var(--text-primary)" }}>Alerts by Severity</h4>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
+            Distribution of active alerts
+          </p>
+          <div
+            className="glass-panel"
+            style={{
+              padding: "28px 32px",
+              width: "100%",
+              maxWidth: "380px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+            }}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              {alertsPieData.length > 0 ? (
+                <PieChart>
+                  <Pie
+                    data={alertsPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {alertsPieData.map((_, i) => (
+                      <Cell key={i} fill={alertsPieData[i].color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--glass-bg)",
+                      border: "1px solid var(--glass-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              ) : (
+                <div
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--text-muted)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  No alerts to display
+                </div>
+              )}
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -601,29 +797,10 @@ const StatCard = ({ icon, label, value, color, loading, onClick }) => (
       {icon}
     </div>
     <div>
-      <p
-        style={{
-          margin: 0,
-          fontSize: "0.75rem",
-          color: "var(--text-muted)",
-          marginBottom: "2px",
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          margin: 0,
-          fontSize: "1.5rem",
-          fontWeight: 700,
-          fontFamily: "var(--font-display)",
-        }}
-      >
+      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, fontFamily: "var(--font-display)" }}>
         {loading ? (
-          <span
-            className="spinner"
-            style={{ width: "14px", height: "14px" }}
-          ></span>
+          <span className="spinner" style={{ width: "14px", height: "14px" }}></span>
         ) : (
           value
         )}
@@ -662,15 +839,7 @@ const AlertBubble = ({ label, count, color }) => (
 
 const MiniInfo = ({ label, value }) => (
   <div>
-    <p
-      style={{
-        fontSize: "0.7rem",
-        color: "var(--text-muted)",
-        margin: "0 0 2px",
-      }}
-    >
-      {label}
-    </p>
+    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0 0 2px" }}>{label}</p>
     <p style={{ fontSize: "0.95rem", fontWeight: 600, margin: 0 }}>{value}</p>
   </div>
 );
@@ -707,39 +876,15 @@ const Card = ({
         }}
       >
         <div>
-          <h3
-            style={{
-              fontSize: "0.9rem",
-              color: "var(--text-secondary)",
-              fontWeight: 500,
-              marginBottom: "4px",
-            }}
-          >
-            {title}
-          </h3>
+          <h3 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 500, marginBottom: "4px" }}>{title}</h3>
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-            <span
-              style={{
-                fontSize: "2.5rem",
-                fontWeight: 700,
-                fontFamily: "var(--font-display)",
-                color: "var(--text-primary)",
-              }}
-            >
+            <span style={{ fontSize: "2.5rem", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>
               {loading ? <span className="spinner"></span> : value}
             </span>
-            <span style={{ fontSize: "1rem", color: "var(--text-muted)" }}>
-              {unit}
-            </span>
+            <span style={{ fontSize: "1rem", color: "var(--text-muted)" }}>{unit}</span>
           </div>
           {location && (
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--text-muted)",
-                marginTop: "4px",
-              }}
-            >
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
               📍 {location}
             </p>
           )}
@@ -757,29 +902,11 @@ const Card = ({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span
-          className="status-badge"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            background:
-              trend === "down"
-                ? "rgba(16, 185, 129, 0.1)"
-                : "rgba(239, 68, 68, 0.1)",
-            color: trend === "down" ? "#10b981" : "#ef4444",
-          }}
-        >
-          {trend === "up" ? (
-            <ArrowUpRight size={14} />
-          ) : (
-            <ArrowDownRight size={14} />
-          )}
+        <span className="status-badge" style={{ display: "flex", alignItems: "center", gap: "4px", background: trend === "down" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)", color: trend === "down" ? "#10b981" : "#ef4444" }}>
+          {trend === "up" ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
           {trendValue}
         </span>
-        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          {trendText}
-        </span>
+        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{trendText}</span>
       </div>
 
       <div
@@ -799,22 +926,8 @@ const Card = ({
       >
         {params.map((param, index) => (
           <div key={index}>
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--text-muted)",
-                marginBottom: "4px",
-              }}
-            >
-              {param.label}
-            </p>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                color: param.color,
-              }}
-            >
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>{param.label}</p>
+            <p style={{ fontSize: "0.875rem", fontWeight: 600, color: param.color }}>
               {param.value}
             </p>
           </div>

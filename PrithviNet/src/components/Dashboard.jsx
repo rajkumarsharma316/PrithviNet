@@ -36,12 +36,11 @@ const Dashboard = () => {
             style={{
               width: "40px",
               height: "40px",
-              background: "linear-gradient(135deg, #10b981, #059669)",
-              borderRadius: "12px",
+              background: "var(--govt-blue)",
+              borderRadius: "2px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(16,185,129,0.3)",
             }}
           >
             <Activity size={24} color="white" />
@@ -55,7 +54,7 @@ const Dashboard = () => {
               letterSpacing: "1px",
             }}
           >
-            Prithvi<span style={{ color: "#10b981" }}>Net</span>
+            Prithvi<span style={{ color: "var(--govt-blue)" }}>Net</span>
           </h1>
         </div>
 

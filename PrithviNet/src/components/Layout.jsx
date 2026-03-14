@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ChatProvider } from "../context/ChatContext";
 import {
   LayoutDashboard,
   Map as MapIcon,
@@ -45,55 +46,21 @@ const Layout = () => {
   const isLoggedIn = !!user;
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            marginBottom: "28px",
-          }}
-        >
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "999px",
-              border: "2px solid #92400e",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#fffbeb",
-            }}
-          >
-            <Activity size={18} color="#92400e" />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                letterSpacing: "0.16em",
-                textTransform: "uppercase",
-                color: "#6b7280",
-              }}
-            >
-              Government of Chhattisgarh
+    <ChatProvider>
+      <div className="layout">
+        <aside className="sidebar">
+          <div className="sidebar-govt-header">
+            <div className="sidebar-govt-header-inner">
+              <div className="sidebar-logo-icon">
+                <Activity size={20} color="#fff" />
+              </div>
+              <div>
+                <div className="sidebar-govt-label">Government of Chhattisgarh</div>
+                <h1 className="sidebar-app-title">PrithviNet Environmental Portal</h1>
+              </div>
             </div>
-            <h1
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                margin: "2px 0 0",
-                letterSpacing: "0.02em",
-                color: "#111827",
-              }}
-            >
-              PrithviNet Environmental Portal
-            </h1>
           </div>
-        </div>
-
+          <div className="sidebar-nav-wrap">
         <nav className="sidebar-nav">
           {/* ── PUBLIC PORTAL (visible to everyone) ── */}
           <SidebarSection label="PUBLIC PORTAL" />
@@ -111,11 +78,6 @@ const Layout = () => {
             to="/trends"
             icon={<TrendingUp size={18} />}
             label="YoY Trends"
-          />
-          <SideLink
-            to="/forecast"
-            icon={<Activity size={18} />}
-            label="Forecasting"
           />
           <SideLink
             to="/alerts-panel"
@@ -139,11 +101,6 @@ const Layout = () => {
             to="/offices-list"
             icon={<Building2 size={18} />}
             label="Regional Offices"
-          />
-          <SideLink
-            to="/alerts-list"
-            icon={<Bell size={18} />}
-            label="All Alerts"
           />
 
           {/* ── MONITORING DATA: view for monitoring/officer/admin, submit ONLY for monitoring ── */}
@@ -294,7 +251,7 @@ const Layout = () => {
           style={{
             marginTop: "auto",
             paddingTop: "16px",
-            borderTop: "1px solid var(--glass-border)",
+            borderTop: "1px solid var(--border-subtle)",
           }}
         >
           {user ? (
@@ -313,8 +270,8 @@ const Layout = () => {
                   style={{
                     width: "36px",
                     height: "36px",
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #10b981, #059669)",
+                    borderRadius: "2px",
+                    background: "var(--govt-blue)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -363,12 +320,14 @@ const Layout = () => {
             </button>
           )}
         </div>
+          </div>
       </aside>
 
-      <main className="main-content">
-        <Outlet />
-      </main>
-    </div>
+        <main className="main-content">
+          <Outlet />
+        </main>
+      </div>
+    </ChatProvider>
   );
 };
 

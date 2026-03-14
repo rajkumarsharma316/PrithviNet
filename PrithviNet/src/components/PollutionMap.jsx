@@ -700,7 +700,7 @@ const PollutionMap = () => {
                           fontSize: "0.82rem",
                           fontWeight: 700,
                           background:
-                            "linear-gradient(135deg, #10b981, #059669)",
+                            "var(--govt-blue)",
                           color: "white",
                           border: "none",
                           cursor: "pointer",

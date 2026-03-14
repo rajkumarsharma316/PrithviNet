@@ -32,9 +32,11 @@ export const register = (name, email, password, role, extra = {}) =>
 export const getMe = () => api("GET", "/auth/me");
 
 // ─── PUBLIC ───────────────────────────────────────────────
-export const getOverview = () => api("GET", "/public/overview");
+export const getOverview = (regionId) =>
+  api("GET", regionId ? `/public/overview?regionId=${encodeURIComponent(regionId)}` : "/public/overview");
 export const getRegionalOffices = () => api("GET", "/public/regional-offices");
-export const getPublicAlerts = () => api("GET", "/public/alerts");
+export const getPublicAlerts = (regionId) =>
+  api("GET", regionId ? `/public/alerts?regionId=${encodeURIComponent(regionId)}` : "/public/alerts");
 export const getMapData = (type) => api("GET", `/public/map-data/${type}`);
 export const getTrend = (type, locationId, days = 7) =>
   api("GET", `/public/trend/${type}/${locationId}?days=${days}`);

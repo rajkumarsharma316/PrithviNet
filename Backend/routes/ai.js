@@ -237,13 +237,27 @@ Air quality (across all regions, last ${days}d):
         const prompt = `
 You are an environmental reporting assistant for a state pollution control board.
 
-Using the statistics below, write a short professional report with the following sections:
-1. Executive Summary
-2. Analysis of Air, Water, and Noise Conditions (focus on air if others missing)
-3. Key Concerns
-4. Recommendations for Regulators and Industries
+Using the statistics below, write a short professional report. Use Markdown formatting strictly:
+- Use "## " for each section heading (e.g. ## Executive Summary).
+- Use "### " for any subheadings.
+- Use "- " for bullet lists.
+- Use **text** for emphasis where needed.
+- Leave a blank line between paragraphs and after headings.
 
-Use clear headings and bullet points where appropriate. Keep it concise (2–4 paragraphs total).
+Sections (use these exact headings):
+## Executive Summary
+(2–3 sentences summarising the period.)
+
+## Air, Water and Noise Conditions
+(Brief analysis; focus on air quality if other data is missing.)
+
+## Key Concerns
+(Bullet list of main issues.)
+
+## Recommendations
+(Bullet list for regulators and industries.)
+
+Keep the report concise and professional. Do not repeat the statistics verbatim; interpret them.
 
 STATISTICS:
 ${statsText}

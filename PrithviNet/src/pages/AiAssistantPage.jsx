@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Send, Bot, User, Lightbulb } from "lucide-react";
 import { aiChat } from "../api";
+import { useChat } from "../context/ChatContext";
 
 const SUGGESTIONS = [
   "Summarise the latest environmental alerts in Chhattisgarh.",
@@ -11,14 +12,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AiAssistantPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Namaste. I am your PrithviNet assistant. Ask me about air, water, noise trends, regional offices or alerts in Chhattisgarh.",
-    },
-  ]);
+  const { messages, setMessages } = useChat();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -83,23 +77,23 @@ export default function AiAssistantPage() {
 
   return (
     <div
-      className="glass-panel"
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(220px, 260px) 1fr",
         height: "100%",
         gap: "0",
+        background: "#e5e7eb",
       }}
     >
       {/* Sidebar */}
       <aside
         style={{
-          borderRight: "1px solid var(--border-subtle)",
+          borderRight: "1px solid #d1d5db",
           padding: "18px 16px",
           display: "flex",
           flexDirection: "column",
           gap: "16px",
-          background: "var(--surface-subtle)",
+          background: "#f3f4f6",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -111,72 +105,40 @@ export default function AiAssistantPage() {
               alignItems: "center",
               justifyContent: "center",
               background:
-                "linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))",
+                "var(--govt-blue)",
               color: "white",
             }}
           >
             <Sparkles size={16} />
           </div>
           <div>
-            <div
-              style={{
-                fontSize: "0.78rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "var(--text-muted)",
-              }}
-            >
-              PrithviNet Copilot
-            </div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-              Ask about your data
-            </div>
+            <div className="label-box" style={{ marginBottom: 4 }}>PrithviNet Copilot</div>
+            <div className="text-box text-box-blue" style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: 0 }}>Ask about your data</div>
           </div>
         </div>
 
-        <div
-          style={{
-            fontSize: "0.78rem",
-            color: "var(--text-secondary)",
-            lineHeight: 1.5,
-          }}
-        >
+        <div className="text-box text-box-grey" style={{ fontSize: "0.78rem", lineHeight: 1.5, marginBottom: 0 }}>
           The assistant has access to recent alerts, regional offices and monitoring
           data. It will not make changes — only explain and summarise.
         </div>
 
-        <div
-          style={{
-            marginTop: 8,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          <div
-            style={{
-              fontSize: "0.75rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              color: "var(--text-muted)",
-            }}
-          >
-            Suggested questions
-          </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="label-box" style={{ marginBottom: 0 }}>Suggested questions</div>
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
               onClick={() => handleSuggestion(s)}
+              className="text-box text-box-blue"
               style={{
                 textAlign: "left",
-                padding: "8px 8px",
+                padding: "10px 12px",
                 fontSize: "0.8rem",
-                border: "1px solid var(--border-subtle)",
-                background: "white",
+                marginBottom: 0,
                 color: "var(--text-secondary)",
                 display: "flex",
                 gap: 6,
                 alignItems: "flex-start",
+                cursor: "pointer",
               }}
             >
               <Lightbulb size={14} style={{ marginTop: 2 }} />
@@ -192,18 +154,12 @@ export default function AiAssistantPage() {
           display: "flex",
           flexDirection: "column",
           height: "100%",
+          background: "#e5e7eb",
         }}
       >
-        <div
-          style={{
-            padding: "12px 20px",
-            borderBottom: "1px solid var(--border-subtle)",
-            fontSize: "0.9rem",
-            color: "var(--text-muted)",
-          }}
-        >
+        <div className="text-box text-box-amber" style={{ padding: "12px 20px", borderBottom: "1px solid #d1d5db", marginBottom: 0, borderRadius: 0 }}>
           Conversations are generated by a local Ollama model (
-          <code>qwen2.5:1.5b</code>). Please verify important decisions with experts.
+          <code>qwen2.5:0.5b</code>). Please verify important decisions with experts.
         </div>
 
         <div
@@ -214,6 +170,7 @@ export default function AiAssistantPage() {
             display: "flex",
             flexDirection: "column",
             gap: 12,
+            background: "#e5e7eb",
           }}
         >
           {messages.map((m) => (
@@ -226,7 +183,7 @@ export default function AiAssistantPage() {
                 alignItems: "center",
                 gap: 8,
                 fontSize: "0.8rem",
-                color: "var(--text-muted)",
+                color: "#6b7280",
               }}
             >
               <Bot size={14} />{" "}
@@ -255,11 +212,12 @@ export default function AiAssistantPage() {
         <form
           onSubmit={handleSubmit}
           style={{
-            borderTop: "1px solid var(--border-subtle)",
+            borderTop: "1px solid #d1d5db",
             padding: "10px 20px",
             display: "flex",
             gap: 10,
             alignItems: "center",
+            background: "#f9fafb",
           }}
         >
           <input
@@ -270,9 +228,9 @@ export default function AiAssistantPage() {
             style={{
               flex: 1,
               padding: "10px 12px",
-              border: "1px solid var(--border-subtle)",
+              border: "1px solid #d1d5db",
               fontSize: "0.9rem",
-              background: "white",
+              background: "#fff",
             }}
           />
           <button
@@ -286,7 +244,7 @@ export default function AiAssistantPage() {
               fontSize: "0.85rem",
               fontWeight: 600,
               background:
-                "linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))",
+                "var(--govt-blue)",
               color: "white",
               border: "none",
               opacity: loading || !input.trim() ? 0.7 : 1,
@@ -320,8 +278,8 @@ function ChatMessage({ role, content }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: isUser ? "#eff6ff" : "#111827",
-          color: isUser ? "#1d4ed8" : "white",
+          background: isUser ? "#dbeafe" : "#9ca3af",
+          color: isUser ? "#1d4ed8" : "#fff",
         }}
       >
         {isUser ? <User size={14} /> : <Bot size={14} />}
@@ -329,9 +287,9 @@ function ChatMessage({ role, content }) {
       <div
         style={{
           padding: "8px 10px",
-          border: "1px solid var(--border-subtle)",
-          background: isUser ? "white" : "#0f172a",
-          color: isUser ? "var(--text-primary)" : "#e5e7eb",
+          border: "1px solid #d1d5db",
+          background: isUser ? "#fff" : "#d1d5db",
+          color: isUser ? "#111827" : "#1f2937",
           fontSize: "0.9rem",
           lineHeight: 1.5,
           maxWidth: "100%",

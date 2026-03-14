@@ -3,8 +3,13 @@
 
 export default async function publicRoutes(fastify, opts) {
   // ── GET /api/public/overview ──────────────────────────
-  // Aggregated stats for the public dashboard
+  // Aggregated stats for the public dashboard. Optional ?regionId= for regional view.
   fastify.get("/overview", async (request, reply) => {
+    const rawRegionId = request.query?.regionId;
+    const regionId = rawRegionId && String(rawRegionId).trim() ? String(rawRegionId).trim() : null;
+    const regionFilter = regionId ? { regionId } : {};
+    const locationRegionFilter = regionId ? { location: { regionId } } : {};
+
     const [
       totalLocations,
       totalIndustries,
@@ -14,19 +19,31 @@ export default async function publicRoutes(fastify, opts) {
       latestWater,
       latestNoise,
     ] = await Promise.all([
-      fastify.prisma.monitoringLocation.count(),
-      fastify.prisma.industry.count({ where: { status: "ACTIVE" } }),
-      fastify.prisma.regionalOffice.count(),
-      fastify.prisma.alert.count({ where: { status: "ACTIVE" } }),
+      fastify.prisma.monitoringLocation.count({ where: regionFilter }),
+      fastify.prisma.industry.count({
+        where: { status: "ACTIVE", ...regionFilter },
+      }),
+      regionId
+        ? 1
+        : fastify.prisma.regionalOffice.count(),
+      fastify.prisma.alert.count({
+        where: {
+          status: "ACTIVE",
+          ...(regionId ? { location: { regionId } } : {}),
+        },
+      }),
       fastify.prisma.airData.findFirst({
+        where: locationRegionFilter,
         orderBy: { timestamp: "desc" },
         include: { location: { select: { name: true } } },
       }),
       fastify.prisma.waterData.findFirst({
+        where: locationRegionFilter,
         orderBy: { timestamp: "desc" },
         include: { location: { select: { name: true } } },
       }),
       fastify.prisma.noiseData.findFirst({
+        where: locationRegionFilter,
         orderBy: { timestamp: "desc" },
         include: { location: { select: { name: true } } },
       }),
@@ -91,10 +108,15 @@ export default async function publicRoutes(fastify, opts) {
   });
 
   // ── GET /api/public/alerts ────────────────────────────
-  // Public-facing active alerts
+  // Public-facing active alerts. Optional ?regionId= to filter by regional office.
   fastify.get("/alerts", async (request, reply) => {
+    const { regionId } = request.query || {};
+    const where = {
+      status: "ACTIVE",
+      ...(regionId ? { location: { regionId } } : {}),
+    };
     const alerts = await fastify.prisma.alert.findMany({
-      where: { status: "ACTIVE" },
+      where,
       include: {
         location: { select: { name: true, lat: true, lng: true } },
       },
