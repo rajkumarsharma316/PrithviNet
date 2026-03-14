@@ -70,8 +70,8 @@ const MonitoringCards = () => {
     getMonitoringLocations().then((res) => {
       if (res.ok && Array.isArray(res.data)) setLocations(res.data);
     });
-    import("../api").then(({ getAlerts }) => {
-      getAlerts().then((res) => {
+    import("../api").then(({ getPublicAlerts }) => {
+      getPublicAlerts().then((res) => {
         if (res.ok) setAlerts(res.data);
       });
     });

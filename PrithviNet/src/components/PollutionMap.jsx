@@ -150,17 +150,18 @@ const PollutionMap = () => {
 
   useEffect(() => {
     import("../api").then(({ getIndustries, getMonitoringLocations }) => {
-      getIndustries().then((res) => {
-        if (res.ok) {
-           setIndustries(res.data.map(i => ({...i, compliant: i.status === 'ACTIVE', violations: 0, lastReport: 'N/A'})));
-        }
-      });
-      getMonitoringLocations().then((res) => {
-        if (res.ok) {
-           // Provide basic aqi/ph/laeq so they don't break UI if missing
-           setStations(res.data.map(s => ({...s, status: 'Good', aqi: s.type==='AIR'? 45:null, ph: s.type==='WATER'?7.1:null, laeq: s.type==='NOISE'?55:null})));
-        }
-      });
+      if (localStorage.getItem("prithvinet_token")) {
+        getIndustries().then((res) => {
+          if (res.ok) {
+             setIndustries(res.data.map(i => ({...i, compliant: i.status === 'ACTIVE', violations: 0, lastReport: 'N/A'})));
+          }
+        });
+        getMonitoringLocations().then((res) => {
+          if (res.ok) {
+             setStations(res.data.map(s => ({...s, status: 'Good', aqi: s.type==='AIR'? 45:null, ph: s.type==='WATER'?7.1:null, laeq: s.type==='NOISE'?55:null})));
+          }
+        });
+      }
     });
   }, []);
 

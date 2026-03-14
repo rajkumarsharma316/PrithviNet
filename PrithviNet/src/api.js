@@ -41,12 +41,12 @@ export const getTrend = (type, locationId, days = 7) =>
 
 // ─── MONITORING DATA ──────────────────────────────────────
 export const getMonitoringData = (type, limit = 10, locationId) => {
-  let path = `/monitoring/${type}?limit=${limit}`;
+  let path = `/monitoring/${type?.toLowerCase()}?limit=${limit}`;
   if (locationId) path += `&locationId=${locationId}`;
   return api("GET", path);
 };
 export const submitMonitoringData = (type, body) =>
-  api("POST", `/monitoring/${type}`, body);
+  api("POST", `/monitoring/${type?.toLowerCase()}`, body);
 
 // ─── MONITORING LOCATIONS ─────────────────────────────────
 export const getMonitoringLocations = (type) => {
