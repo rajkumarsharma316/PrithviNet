@@ -1,162 +1,791 @@
-import React, { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Factory, AlertTriangle, CheckCircle, XCircle, TrendingUp, TrendingDown, FileText, Clock, Wind, Droplets, Volume2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-
-// Mock data for industry dashboard
-const genEmissions = () => Array.from({ length: 30 }, (_, i) => ({
-  day: `Day ${i + 1}`,
-  pm25: Math.round(40 + Math.random() * 50 + Math.sin(i / 4) * 15),
-  so2: Math.round(20 + Math.random() * 30),
-  no2: Math.round(30 + Math.random() * 25),
-  ph: parseFloat((6.8 + Math.random() * 1.0).toFixed(1)),
-  bod: Math.round(15 + Math.random() * 20),
-  noise: Math.round(55 + Math.random() * 25),
-}));
-
-const MOCK_VIOLATIONS = [
-  { date: '2024-12-01', type: 'PM2.5 Exceedance', value: 85, limit: 60, status: 'Resolved' },
-  { date: '2024-11-15', type: 'SO₂ Exceedance', value: 95, limit: 80, status: 'Resolved' },
-  { date: '2024-10-28', type: 'Water BOD', value: 35, limit: 30, status: 'Resolved' },
-  { date: '2025-01-10', type: 'PM2.5 Exceedance', value: 78, limit: 60, status: 'Active' },
-  { date: '2025-02-05', type: 'Noise Level', value: 82, limit: 75, status: 'Active' },
-];
+import React, { useState, useEffect } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Factory,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  FileText,
+  Clock,
+  Upload,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import {
+  submitMonitoringData,
+  getMonitoringLocations,
+  getMonitoringData,
+} from "../api";
 
 const IndustryDashboard = () => {
   const { user } = useAuth();
-  const [activeParam, setActiveParam] = useState('pm25');
-  const emissionsData = genEmissions();
 
-  const industryName = user?.industry?.name || 'Your Industry';
-  const industryType = user?.industry?.type || 'Manufacturing';
+  // ── IMPORTANT: these must be declared BEFORE any useEffect that references them ──
+  const isPending = user?.industry?.status === "PENDING";
+  const industryName = user?.industry?.name || "Your Industry";
+  const industryType = user?.industry?.type || "Manufacturing";
+
+  const [activeParam, setActiveParam] = useState("pm25");
+  const [reportType, setReportType] = useState("air");
+  const [reportForm, setReportForm] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState("");
+  const [emissionsData, setEmissionsData] = useState([]);
+  const [violations, setViolations] = useState([]);
+  const [roName, setRoName] = useState("Loading...");
+
+  // Fetch regional office name for the PENDING banner
+  useEffect(() => {
+    if (!user?.industry?.regionId) return;
+    import("../api").then(({ getRegionalOffices }) => {
+      getRegionalOffices().then((res) => {
+        if (res.ok) {
+          const ro = res.data.find((r) => r.id === user.industry.regionId);
+          if (ro) setRoName(`${ro.name} (${ro.district} District)`);
+          else setRoName("Unknown Regional Office");
+        }
+      });
+    });
+  }, [user?.industry?.regionId]);
+
+  // Fetch emissions data + violations — skip when status is PENDING
+  useEffect(() => {
+    if (isPending) return;
+
+    let type = "AIR";
+    if (["ph", "bod"].includes(activeParam)) type = "WATER";
+    if (activeParam === "noise") type = "NOISE";
+
+    getMonitoringData(type, 30).then((res) => {
+      if (res.ok && res.data.length > 0) {
+        const mapped = res.data
+          .map((d) => ({
+            day: new Date(d.timestamp).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            }),
+            [activeParam]: d[activeParam] || 0,
+          }))
+          .reverse();
+        setEmissionsData(mapped);
+      } else {
+        setEmissionsData([]);
+      }
+    });
+
+    import("../api").then(({ getAlerts }) => {
+      getAlerts().then((res) => {
+        if (res.ok) {
+          const myAlerts = res.data.filter(
+            (a) => a.location?.industryId === user?.industry?.id,
+          );
+          setViolations(
+            myAlerts.map((a) => ({
+              date: new Date(a.createdAt).toISOString().split("T")[0],
+              type: a.parameter,
+              value: a.value,
+              limit: a.limit,
+              status: a.severity === "CRITICAL" ? "Active" : "Resolved",
+            })),
+          );
+        }
+      });
+    });
+  }, [activeParam, isPending, user?.industry?.id]);
 
   const PARAMS = [
-    { key: 'pm25', label: 'PM2.5', unit: 'µg/m³', color: '#fbbf24' },
-    { key: 'so2', label: 'SO₂', unit: 'ppb', color: '#ef4444' },
-    { key: 'no2', label: 'NO₂', unit: 'ppb', color: '#10b981' },
-    { key: 'ph', label: 'pH', unit: '', color: '#3b82f6' },
-    { key: 'bod', label: 'BOD', unit: 'mg/L', color: '#8b5cf6' },
-    { key: 'noise', label: 'Noise', unit: 'dB(A)', color: '#f59e0b' },
+    { key: "pm25", label: "PM2.5", unit: "µg/m³", color: "#fbbf24" },
+    { key: "so2", label: "SO₂", unit: "ppb", color: "#ef4444" },
+    { key: "no2", label: "NO₂", unit: "ppb", color: "#10b981" },
+    { key: "ph", label: "pH", unit: "", color: "#3b82f6" },
+    { key: "bod", label: "BOD", unit: "mg/L", color: "#8b5cf6" },
+    { key: "noise", label: "Noise", unit: "dB(A)", color: "#f59e0b" },
   ];
 
-  const currentParam = PARAMS.find(p => p.key === activeParam);
+  const currentParam = PARAMS.find((p) => p.key === activeParam);
+
+  const uf = (k, v) => setReportForm((f) => ({ ...f, [k]: v }));
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitMsg("");
+
+    const locRes = await getMonitoringLocations(reportType.toUpperCase());
+    const locations = locRes.ok ? locRes.data : [];
+    const loc =
+      locations.find((l) => l.industryId === user?.industry?.id) ||
+      locations[0];
+
+    if (!loc) {
+      setSubmitMsg(
+        "No monitoring location found. Contact your regional office.",
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    const body = { locationId: loc.id, ...reportForm };
+    const res = await submitMonitoringData(reportType, body);
+    setSubmitting(false);
+    if (res.ok) {
+      setSubmitMsg("Report submitted successfully!");
+      setReportForm({});
+    } else {
+      setSubmitMsg(res.data?.error || "Submission failed");
+    }
+  };
+
+  const REPORT_FIELDS = {
+    air: [
+      { key: "pm25", label: "PM2.5 (µg/m³)" },
+      { key: "pm10", label: "PM10 (µg/m³)" },
+      { key: "no2", label: "NO₂ (ppb)" },
+      { key: "so2", label: "SO₂ (ppb)" },
+      { key: "co", label: "CO (ppm)" },
+      { key: "o3", label: "O₃ (ppb)" },
+    ],
+    water: [
+      { key: "ph", label: "pH" },
+      { key: "tds", label: "TDS (mg/L)" },
+      { key: "turbidity", label: "Turbidity (NTU)" },
+      { key: "dissolvedOxygen", label: "DO (mg/L)" },
+      { key: "bod", label: "BOD (mg/L)" },
+      { key: "cod", label: "COD (mg/L)" },
+    ],
+    noise: [
+      { key: "laeq", label: "LAeq dB(A)" },
+      { key: "lmax", label: "Lmax dB(A)" },
+      { key: "lmin", label: "Lmin dB(A)" },
+    ],
+  };
+
+  // ── PENDING UI ──
+  if (isPending) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+          textAlign: "center",
+          gap: "20px",
+        }}
+      >
+        <div
+          style={{
+            background: "rgba(245, 158, 11, 0.1)",
+            padding: "24px",
+            borderRadius: "50%",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+          }}
+        >
+          <Clock size={48} color="#f59e0b" />
+        </div>
+        <div>
+          <h2 style={{ fontSize: "1.8rem", margin: "0 0 12px" }}>
+            Registration Pending Approval
+          </h2>
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              maxWidth: "500px",
+              margin: "0 auto 24px",
+              lineHeight: 1.6,
+            }}
+          >
+            Your industry registration for <strong>{industryName}</strong> has
+            been submitted and is currently awaiting approval from the regional
+            office. Once approved, you will be able to access your full dashboard
+            and submit emission reports.
+          </p>
+
+          {/* Regional Office Info */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: "20px",
+              display: "inline-block",
+              textAlign: "left",
+              minWidth: "300px",
+            }}
+          >
+            <p
+              style={{
+                margin: "0 0 8px",
+                fontSize: "0.85rem",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Assigned Regional Office
+            </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <Factory size={18} color="#3b82f6" /> {roName}
+            </p>
+          </div>
+
+          {/* Industry Details */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: "20px",
+              display: "inline-block",
+              textAlign: "left",
+              minWidth: "300px",
+              marginTop: "16px",
+            }}
+          >
+            <p
+              style={{
+                margin: "0 0 8px",
+                fontSize: "0.85rem",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Industry Details
+            </p>
+            <p style={{ margin: "0 0 4px", fontWeight: 600 }}>
+              {industryName}
+            </p>
+            <p
+              style={{
+                margin: "0 0 4px",
+                fontSize: "0.85rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Type: {industryType}
+            </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "0.85rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Reg. No: {user?.industry?.registrationNo || "—"}
+            </p>
+          </div>
+
+          {/* Null Stats Row */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "12px",
+              marginTop: "24px",
+              maxWidth: "600px",
+              margin: "24px auto 0",
+            }}
+          >
+            <StatCard
+              icon={<CheckCircle size={18} />}
+              label="Compliance"
+              value="—"
+              color="#6b7280"
+            />
+            <StatCard
+              icon={<AlertTriangle size={18} />}
+              label="Violations"
+              value="—"
+              color="#6b7280"
+            />
+            <StatCard
+              icon={<FileText size={18} />}
+              label="Reports"
+              value="—"
+              color="#6b7280"
+            />
+            <StatCard
+              icon={<TrendingUp size={18} />}
+              label="Trend"
+              value="—"
+              color="#6b7280"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ACTIVE / APPROVED UI ──
+  const activeViolations = violations.filter(
+    (v) => v.status === "Active",
+  ).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+        width: "100%",
+      }}
+    >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
         <div>
-          <h2 style={{ fontSize: '1.5rem', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2
+            style={{
+              fontSize: "1.5rem",
+              margin: "0 0 4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
             <Factory size={24} color="#3b82f6" />
             {industryName}
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: "0.9rem",
+              margin: 0,
+            }}
+          >
             {industryType} • Industry Dashboard
           </p>
         </div>
-        <span className="status-badge status-moderate">Compliance: 72%</span>
+        <span className="status-badge status-good">
+          Status: {user?.industry?.status || "ACTIVE"}
+        </span>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-        <StatCard icon={<CheckCircle size={18} />} label="Compliance Score" value="72%" color="#fbbf24" />
-        <StatCard icon={<AlertTriangle size={18} />} label="Active Violations" value="2" color="#ef4444" />
-        <StatCard icon={<FileText size={18} />} label="Reports Submitted" value="28" color="#3b82f6" />
-        <StatCard icon={<Clock size={18} />} label="Last Report" value="2h ago" color="#10b981" />
-        <StatCard icon={<TrendingUp size={18} />} label="Trend (30d)" value="+5%" color="#10b981" />
+      {/* Stats — dynamic from fetched data */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "12px",
+        }}
+      >
+        <StatCard
+          icon={<CheckCircle size={18} />}
+          label="Compliance Score"
+          value={activeViolations === 0 ? "100%" : `${Math.max(0, 100 - activeViolations * 14)}%`}
+          color={activeViolations === 0 ? "#10b981" : "#fbbf24"}
+        />
+        <StatCard
+          icon={<AlertTriangle size={18} />}
+          label="Active Violations"
+          value={String(activeViolations)}
+          color={activeViolations > 0 ? "#ef4444" : "#10b981"}
+        />
+        <StatCard
+          icon={<FileText size={18} />}
+          label="Reports Submitted"
+          value={String(emissionsData.length)}
+          color="#3b82f6"
+        />
+        <StatCard
+          icon={<Clock size={18} />}
+          label="Total Violations"
+          value={String(violations.length)}
+          color="#f59e0b"
+        />
       </div>
 
       {/* Emission Trends Chart */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-          <h3 style={{ fontSize: '1rem', margin: 0 }}>Emission Trends (30 Days)</h3>
-          <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.2)', padding: '3px', borderRadius: '10px', flexWrap: 'wrap' }}>
-            {PARAMS.map(p => (
-              <button key={p.key} onClick={() => setActiveParam(p.key)} style={{
-                padding: '5px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600,
-                background: activeParam === p.key ? `${p.color}20` : 'transparent',
-                color: activeParam === p.key ? p.color : 'var(--text-muted)',
-                border: activeParam === p.key ? `1px solid ${p.color}40` : '1px solid transparent'
-              }}>{p.label}</button>
+      <div className="glass-panel" style={{ padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+            gap: "10px",
+          }}
+        >
+          <h3 style={{ fontSize: "1rem", margin: 0 }}>
+            Emission Trends (30 Days)
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              background: "rgba(0,0,0,0.2)",
+              padding: "3px",
+              borderRadius: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            {PARAMS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setActiveParam(p.key)}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  background:
+                    activeParam === p.key ? `${p.color}20` : "transparent",
+                  color: activeParam === p.key ? p.color : "var(--text-muted)",
+                  border:
+                    activeParam === p.key
+                      ? `1px solid ${p.color}40`
+                      : "1px solid transparent",
+                }}
+              >
+                {p.label}
+              </button>
             ))}
           </div>
         </div>
-        <div style={{ height: '280px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={emissionsData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="emGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={currentParam.color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={currentParam.color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" fontSize={10} />
-              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
-              <Tooltip contentStyle={{ background: 'rgba(10,15,25,0.95)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'white' }} />
-              <Area type="monotone" dataKey={activeParam} stroke={currentParam.color} strokeWidth={2} fill="url(#emGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div style={{ height: "280px" }}>
+          {emissionsData.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+              }}
+            >
+              No emission data available yet.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={emissionsData}
+                margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="emGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={currentParam.color}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={currentParam.color}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.05)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="day"
+                  stroke="rgba(255,255,255,0.3)"
+                  fontSize={10}
+                />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(10,15,25,0.95)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: "8px",
+                    color: "white",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey={activeParam}
+                  stroke={currentParam.color}
+                  strokeWidth={2}
+                  fill="url(#emGrad)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
       {/* Violations History */}
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)' }}>
-          <h3 style={{ fontSize: '0.95rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="glass-panel" style={{ overflow: "hidden" }}>
+        <div
+          style={{
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--glass-border)",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "0.95rem",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             <AlertTriangle size={16} color="#ef4444" /> Violation History
           </h3>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>Date</th><th>Type</th><th>Value</th><th>Limit</th><th>Status</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Limit</th>
+                <th>Status</th>
+              </tr>
+            </thead>
             <tbody>
-              {MOCK_VIOLATIONS.map((v, i) => (
-                <tr key={i}>
-                  <td>{v.date}</td>
-                  <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.type}</td>
-                  <td style={{ color: '#ef4444', fontWeight: 600 }}>{v.value}</td>
-                  <td>{v.limit}</td>
-                  <td>
-                    <span className={`status-badge ${v.status === 'Resolved' ? 'status-good' : 'status-poor'}`} style={{ fontSize: '0.7rem' }}>
-                      {v.status}
-                    </span>
+              {violations.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="5"
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    No violations recorded.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                violations.map((v, i) => (
+                  <tr key={i}>
+                    <td>{v.date}</td>
+                    <td
+                      style={{
+                        fontWeight: 600,
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {v.type}
+                    </td>
+                    <td style={{ color: "#ef4444", fontWeight: 600 }}>
+                      {v.value}
+                    </td>
+                    <td>{v.limit}</td>
+                    <td>
+                      <span
+                        className={`status-badge ${v.status === "Resolved" ? "status-good" : "status-poor"}`}
+                        style={{ fontSize: "0.7rem" }}
+                      >
+                        {v.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Register New Industry */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '1rem', margin: '0 0 4px' }}>Register New Industry</h3>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px' }}>Request approval from the regional office to register a new industry.</p>
-        <div className="modal-fields" style={{ maxWidth: '500px' }}>
-          <div><label>Industry Name</label><input placeholder="Enter industry name" /></div>
-          <div><label>Industry Type</label><input placeholder="e.g. Steel, Chemical, Textile" /></div>
-          <div><label>Registration Number</label><input placeholder="e.g. CG-STL-XXX" /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div><label>Latitude</label><input type="number" placeholder="21.2514" /></div>
-            <div><label>Longitude</label><input type="number" placeholder="81.6296" /></div>
+      {/* Submit Emission Report */}
+      <div className="glass-panel" style={{ padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "16px",
+            flexWrap: "wrap",
+            gap: "10px",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "1rem",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Upload size={18} color="#10b981" /> Submit Emission Report
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              background: "rgba(0,0,0,0.2)",
+              padding: "3px",
+              borderRadius: "10px",
+            }}
+          >
+            {[
+              { k: "air", l: "Air", c: "#10b981" },
+              { k: "water", l: "Water", c: "#3b82f6" },
+              { k: "noise", l: "Noise", c: "#ef4444" },
+            ].map((t) => (
+              <button
+                key={t.k}
+                onClick={() => {
+                  setReportType(t.k);
+                  setReportForm({});
+                  setSubmitMsg("");
+                }}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "6px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  background: reportType === t.k ? `${t.c}20` : "transparent",
+                  color: reportType === t.k ? t.c : "var(--text-muted)",
+                  border: "none",
+                }}
+              >
+                {t.l}
+              </button>
+            ))}
           </div>
-          <div><label>Address</label><input placeholder="Full address" /></div>
-          <button className="action-btn primary-btn" style={{ marginTop: '8px' }}>
-            <FileText size={16} /> Submit for Approval
-          </button>
         </div>
+        {submitMsg && (
+          <div
+            style={{
+              marginBottom: "12px",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              background: submitMsg.includes("success")
+                ? "rgba(16,185,129,0.1)"
+                : "rgba(239,68,68,0.1)",
+              color: submitMsg.includes("success") ? "#10b981" : "#ef4444",
+              border: `1px solid ${submitMsg.includes("success") ? "#10b98140" : "#ef444440"}`,
+            }}
+          >
+            {submitMsg}
+          </div>
+        )}
+        <form onSubmit={handleReportSubmit}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            {REPORT_FIELDS[reportType].map((f) => (
+              <div key={f.key}>
+                <label
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "var(--text-secondary)",
+                    marginBottom: "4px",
+                    display: "block",
+                  }}
+                >
+                  {f.label}
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="0.0"
+                  value={reportForm[f.key] || ""}
+                  onChange={(e) => uf(f.key, parseFloat(e.target.value) || "")}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--glass-border)",
+                    background: "rgba(255,255,255,0.03)",
+                    color: "var(--text-primary)",
+                    fontSize: "0.85rem",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="submit"
+            className="action-btn primary-btn"
+            disabled={submitting}
+            style={{ marginTop: "16px" }}
+          >
+            {submitting ? (
+              <span className="spinner"></span>
+            ) : (
+              <>
+                <Upload size={16} /> Submit Report
+              </>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );
 };
 
 const StatCard = ({ icon, label, value, color }) => (
-  <div className="glass-panel" style={{ padding: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}12`, border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>{icon}</div>
+  <div
+    className="glass-panel"
+    style={{
+      padding: "14px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+    }}
+  >
+    <div
+      style={{
+        width: "36px",
+        height: "36px",
+        borderRadius: "10px",
+        background: `${color}12`,
+        border: `1px solid ${color}25`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color,
+      }}
+    >
+      {icon}
+    </div>
     <div>
-      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0 0 1px' }}>{label}</p>
-      <p style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, fontFamily: 'var(--font-display)' }}>{value}</p>
+      <p
+        style={{
+          fontSize: "0.7rem",
+          color: "var(--text-muted)",
+          margin: "0 0 1px",
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          fontSize: "1.1rem",
+          fontWeight: 700,
+          margin: 0,
+          fontFamily: "var(--font-display)",
+        }}
+      >
+        {value}
+      </p>
     </div>
   </div>
 );

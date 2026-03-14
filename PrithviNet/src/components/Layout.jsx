@@ -1,106 +1,312 @@
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
-  LayoutDashboard, Map as MapIcon, Activity, AlertTriangle,
-  Wind, Droplets, Volume2, Building2, Factory, MapPin,
-  Ruler, Beaker, User, LogIn, LogOut, Bell, TrendingUp,
-  List, Shield, Briefcase, Upload, Eye
-} from 'lucide-react';
+  LayoutDashboard,
+  Map as MapIcon,
+  Activity,
+  AlertTriangle,
+  Wind,
+  Droplets,
+  Volume2,
+  Building2,
+  Factory,
+  MapPin,
+  Ruler,
+  Beaker,
+  User,
+  LogIn,
+  LogOut,
+  Bell,
+  TrendingUp,
+  List,
+  Shield,
+  Briefcase,
+  Upload,
+  Eye,
+} from "lucide-react";
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const role = user?.role;
-  const isAdmin = role === 'SUPER_ADMIN';
-  const isOfficer = role === 'REGIONAL_OFFICER';
-  const isMonitoring = role === 'MONITORING_TEAM';
-  const isIndustry = role === 'INDUSTRY_USER';
+  const isAdmin = role === "SUPER_ADMIN";
+  const isOfficer = role === "REGIONAL_OFFICER";
+  const isMonitoring = role === "MONITORING_TEAM";
+  const isIndustry = role === "INDUSTRY_USER";
   const isLoggedIn = !!user;
 
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-          <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "32px",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 20px rgba(16,185,129,0.3)",
+            }}
+          >
             <Activity size={24} color="white" />
           </div>
-          <h1 className="glow-text" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '1px' }}>
-            Prithvi<span style={{ color: '#10b981' }}>Net</span>
+          <h1
+            className="glow-text"
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              margin: 0,
+              letterSpacing: "1px",
+            }}
+          >
+            Prithvi<span style={{ color: "#10b981" }}>Net</span>
           </h1>
         </div>
 
         <nav className="sidebar-nav">
           {/* ── PUBLIC PORTAL (visible to everyone) ── */}
           <SidebarSection label="PUBLIC PORTAL" />
-          <SideLink to="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" />
-          <SideLink to="/map" icon={<MapIcon size={18} />} label="Pollution Map" />
-          <SideLink to="/trends" icon={<TrendingUp size={18} />} label="YoY Trends" />
-          <SideLink to="/forecast" icon={<Activity size={18} />} label="Forecasting" />
-          <SideLink to="/alerts-panel" icon={<AlertTriangle size={18} />} label="Live Alerts" />
+          <SideLink
+            to="/dashboard"
+            icon={<LayoutDashboard size={18} />}
+            label="Overview"
+          />
+          <SideLink
+            to="/map"
+            icon={<MapIcon size={18} />}
+            label="Pollution Map"
+          />
+          <SideLink
+            to="/trends"
+            icon={<TrendingUp size={18} />}
+            label="YoY Trends"
+          />
+          <SideLink
+            to="/forecast"
+            icon={<Activity size={18} />}
+            label="Forecasting"
+          />
+          <SideLink
+            to="/alerts-panel"
+            icon={<AlertTriangle size={18} />}
+            label="Live Alerts"
+          />
 
           {/* ── EXPLORE (visible to everyone) ── */}
           <SidebarSection label="EXPLORE" />
-          <SideLink to="/monitoring-locations" icon={<MapPin size={18} />} label="Mon. Locations" />
-          <SideLink to="/industries-list" icon={<Factory size={18} />} label="Industries" />
-          <SideLink to="/offices-list" icon={<Building2 size={18} />} label="Regional Offices" />
-          <SideLink to="/alerts-list" icon={<Bell size={18} />} label="All Alerts" />
+          <SideLink
+            to="/monitoring-locations"
+            icon={<MapPin size={18} />}
+            label="Mon. Locations"
+          />
+          <SideLink
+            to="/industries-list"
+            icon={<Factory size={18} />}
+            label="Industries"
+          />
+          <SideLink
+            to="/offices-list"
+            icon={<Building2 size={18} />}
+            label="Regional Offices"
+          />
+          <SideLink
+            to="/alerts-list"
+            icon={<Bell size={18} />}
+            label="All Alerts"
+          />
 
           {/* ── MONITORING DATA: view for monitoring/officer/admin, submit ONLY for monitoring ── */}
-          {isLoggedIn && (isAdmin || isOfficer || isMonitoring) && <>
-            <SidebarSection label="MONITORING DATA" />
-            <SideLink to="/monitoring/air" icon={<Wind size={18} />} label="Air Quality" />
-            <SideLink to="/monitoring/water" icon={<Droplets size={18} />} label="Water Quality" />
-            <SideLink to="/monitoring/noise" icon={<Volume2 size={18} />} label="Noise Level" />
-          </>}
+          {isLoggedIn && (isAdmin || isOfficer || isMonitoring) && (
+            <>
+              <SidebarSection label="MONITORING DATA" />
+              <SideLink
+                to="/monitoring/air"
+                icon={<Wind size={18} />}
+                label="Air Quality"
+              />
+              <SideLink
+                to="/monitoring/water"
+                icon={<Droplets size={18} />}
+                label="Water Quality"
+              />
+              <SideLink
+                to="/monitoring/noise"
+                icon={<Volume2 size={18} />}
+                label="Noise Level"
+              />
+            </>
+          )}
 
           {/* Submit Data — ONLY for Monitoring Team */}
-          {isMonitoring && <>
-            <SidebarSection label="SUBMIT DATA" />
-            <SideLink to="/monitoring/air/submit" icon={<Upload size={18} />} label="Submit Air Data" />
-            <SideLink to="/monitoring/water/submit" icon={<Upload size={18} />} label="Submit Water Data" />
-            <SideLink to="/monitoring/noise/submit" icon={<Upload size={18} />} label="Submit Noise Data" />
-          </>}
+          {isMonitoring && (
+            <>
+              <SidebarSection label="SUBMIT DATA" />
+              <SideLink
+                to="/monitoring/air/submit"
+                icon={<Upload size={18} />}
+                label="Submit Air Data"
+              />
+              <SideLink
+                to="/monitoring/water/submit"
+                icon={<Upload size={18} />}
+                label="Submit Water Data"
+              />
+              <SideLink
+                to="/monitoring/noise/submit"
+                icon={<Upload size={18} />}
+                label="Submit Noise Data"
+              />
+            </>
+          )}
 
           {/* ── REGIONAL OFFICER — manage industries, stations, alerts ── */}
-          {(isOfficer || isAdmin) && <>
-            <SidebarSection label="MY REGION" />
-            <SideLink to="/region-dashboard" icon={<Shield size={18} />} label="Region Dashboard" />
-            <SideLink to="/alerts" icon={<Bell size={18} />} label="Alert Management" />
-          </>}
+          {isOfficer && (
+            <>
+              <SidebarSection label="MY REGION" />
+              <SideLink
+                to="/region-dashboard"
+                icon={<Shield size={18} />}
+                label="Region Dashboard"
+              />
+              <SideLink
+                to="/alerts"
+                icon={<Bell size={18} />}
+                label="Alert Management"
+              />
+            </>
+          )}
 
           {/* ── INDUSTRY USER ── */}
-          {(isIndustry || isAdmin) && <>
-            <SidebarSection label="MY INDUSTRY" />
-            <SideLink to="/industry-dashboard" icon={<Briefcase size={18} />} label="Industry Dashboard" />
-          </>}
+          {isIndustry && (
+            <>
+              <SidebarSection label="MY INDUSTRY" />
+              <SideLink
+                to="/industry-dashboard"
+                icon={<Briefcase size={18} />}
+                label="Industry Dashboard"
+              />
+              <SideLink
+                to="/industry-dashboard"
+                icon={<Upload size={18} />}
+                label="Submit Report"
+              />
+            </>
+          )}
 
           {/* ── ADMIN PANEL — read-only oversight + approval, NO create/delete ── */}
-          {isAdmin && <>
-            <SidebarSection label="ADMIN (VIEW & APPROVE)" />
-            <SideLink to="/admin/offices" icon={<Eye size={18} />} label="View Offices" />
-            <SideLink to="/admin/industries" icon={<Eye size={18} />} label="View Industries" />
-            <SideLink to="/admin/water-sources" icon={<Eye size={18} />} label="View Water Sources" />
-            <SideLink to="/admin/locations" icon={<Eye size={18} />} label="View Locations" />
-            <SideLink to="/admin/limits" icon={<Ruler size={18} />} label="Limits" />
-            <SideLink to="/admin/units" icon={<Beaker size={18} />} label="Units" />
-          </>}
+          {isAdmin && (
+            <>
+              <SidebarSection label="ADMIN (VIEW & APPROVE)" />
+              <SideLink
+                to="/admin/offices"
+                icon={<Eye size={18} />}
+                label="View Offices"
+              />
+              <SideLink
+                to="/admin/industries"
+                icon={<Eye size={18} />}
+                label="View Industries"
+              />
+              <SideLink
+                to="/admin/water-sources"
+                icon={<Eye size={18} />}
+                label="View Water Sources"
+              />
+              <SideLink
+                to="/admin/locations"
+                icon={<Eye size={18} />}
+                label="View Locations"
+              />
+              <SideLink
+                to="/admin/limits"
+                icon={<Ruler size={18} />}
+                label="Limits"
+              />
+              <SideLink
+                to="/admin/units"
+                icon={<Beaker size={18} />}
+                label="Units"
+              />
+            </>
+          )}
         </nav>
 
         {/* User panel */}
-        <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--glass-border)' }}>
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: "16px",
+            borderTop: "1px solid var(--glass-border)",
+          }}
+        >
           {user ? (
             <div className="sidebar-user">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', cursor: 'pointer' }} onClick={() => navigate('/profile')}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/profile")}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #10b981, #059669)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                    color: "white",
+                    flexShrink: 0,
+                  }}
+                >
                   {user.name?.charAt(0)?.toUpperCase()}
                 </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.role.replace(/_/g, ' ')}</p>
+                <div style={{ overflow: "hidden" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {user.name}
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.7rem",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    {user.role.replace(/_/g, " ")}
+                  </p>
                 </div>
               </div>
               <button onClick={handleLogout} className="sidebar-logout-btn">
@@ -108,7 +314,10 @@ const Layout = () => {
               </button>
             </div>
           ) : (
-            <button onClick={() => navigate('/login')} className="sidebar-login-btn">
+            <button
+              onClick={() => navigate("/login")}
+              className="sidebar-login-btn"
+            >
               <LogIn size={16} /> Sign In
             </button>
           )}
@@ -128,7 +337,11 @@ function SidebarSection({ label }) {
 
 function SideLink({ to, icon, label }) {
   return (
-    <NavLink to={to} end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+    <NavLink
+      to={to}
+      end
+      className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
+    >
       {icon}
       <span>{label}</span>
     </NavLink>

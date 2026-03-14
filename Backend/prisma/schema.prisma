@@ -29,6 +29,7 @@ enum IndustryStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  PENDING
 }
 
 enum AlertSeverity {

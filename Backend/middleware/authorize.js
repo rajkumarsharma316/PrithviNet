@@ -6,8 +6,8 @@ export function authorize(...allowedRoles) {
     const userRole = request.user?.role;
     if (!userRole || !allowedRoles.includes(userRole)) {
       return reply.code(403).send({
-        error: 'Forbidden',
-        message: `Access denied. Required roles: ${allowedRoles.join(', ')}`
+        error: "Forbidden",
+        message: `Access denied. Required roles: ${allowedRoles.join(", ")}`,
       });
     }
   };
