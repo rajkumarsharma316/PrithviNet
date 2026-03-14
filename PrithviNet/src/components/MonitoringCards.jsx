@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { getOverview, getMonitoringLocations, getRegionSummary } from "../api";
+import { REGIONS } from "../mockData";
 
 const MonitoringCards = () => {
   const [overview, setOverview] = useState(null);
@@ -149,8 +150,8 @@ const MonitoringCards = () => {
               width: "8px",
               height: "8px",
               borderRadius: "50%",
-              background: "#10b981",
-              boxShadow: "0 0 8px #10b981",
+              background: "var(--accent-secondary)",
+              boxShadow: "0 0 6px rgba(146,64,14,0.6)",
             }}
           />
           <select

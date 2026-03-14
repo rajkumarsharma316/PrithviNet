@@ -25,8 +25,9 @@ import {
 } from "lucide-react";
 import { getMapData, getRegionSummary } from "../api";
 
+// Soft choropleth ramp: light yellow → orange → deep red
 const getComplianceColor = (c) =>
-  c >= 80 ? "#10b981" : c >= 60 ? "#f59e0b" : "#ef4444";
+  c >= 80 ? "#fee391" : c >= 60 ? "#fec44f" : "#e34a33";
 const getComplianceLabel = (c) =>
   c >= 80 ? "Good" : c >= 60 ? "Moderate" : "Poor";
 const getRiskLevel = (c) =>
@@ -47,54 +48,131 @@ const months = [
   "Dec",
 ];
 
-/* ────────── Icon factories (IQAir-inspired) ────────── */
-const regionIcon = (color, score) =>
-  L.divIcon({
+/* ────────── Zoom scaling (AQI-style: markers scale with zoom) ────────── */
+const MIN_ZOOM = 5;  // only India visible when zoomed out
+const MAX_ZOOM = 14; // limit zoom-in so view stays contextual
+/* India bounds: [south, west], [north, east] — restricts panning to India */
+const INDIA_BOUNDS = [
+  [8.0, 68.0],   // SW (Kanyakumari, W Gujarat)
+  [37.1, 97.4], // NE (Kashmir, Arunachal)
+];
+const getMarkerScale = (zoom) =>
+  Math.max(0.55, Math.min(1.6, 0.55 + ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 1.05));
+
+/* Pin-style markers (regions, industries, stations) use larger base size to match value circles */
+const PIN_BASE = 28;
+
+/* ────────── Icon factories (IQAir-inspired, zoom-scaled) ────────── */
+const regionIcon = (color, score, zoom = 7) => {
+  const s = getMarkerScale(zoom);
+  const w = Math.round(PIN_BASE * s);
+  const h = Math.round((24 / 18) * PIN_BASE * s);
+  const circle = Math.round(PIN_BASE * s);
+  const top = Math.round((16 / 18) * PIN_BASE * s);
+  const tail = Math.round((6 / 18) * PIN_BASE * s);
+  const border = Math.max(1, Math.round((1.5 / 18) * PIN_BASE * s));
+  const fontSize = Math.max(8, Math.round((9 / 18) * PIN_BASE * s));
+  return L.divIcon({
     className: "",
     html: `<div style="
-    position:relative;width:56px;height:56px;cursor:pointer;
-  ">
-    <div style="
-      position:absolute;inset:0;border-radius:16px;background:${color};
-      opacity:0.18;transform:rotate(45deg);
-    "></div>
-    <div style="
-      position:relative;z-index:1;width:100%;height:100%;border-radius:16px;
-      background:white;border:2.5px solid ${color};
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      font-family:system-ui;box-shadow:0 2px 12px rgba(0,0,0,0.15);
+      position: relative;
+      width: ${w}px;
+      height: ${h}px;
+      cursor: pointer;
+      transform: translateY(-1px);
     ">
-      <span style="font-size:16px;font-weight:800;color:${color};line-height:1;">${score}</span>
-      <span style="font-size:8px;font-weight:600;color:${color};opacity:0.7;line-height:1;margin-top:1px;">%</span>
-    </div>
-  </div>`,
-    iconSize: [56, 56],
-    iconAnchor: [28, 28],
-    popupAnchor: [0, -28],
+      <div style="
+        position:absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        margin: auto;
+        width: ${circle}px;
+        height: ${circle}px;
+        border-radius: 999px;
+        background: white;
+        border: ${border}px solid ${color};
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-family: system-ui;
+      ">
+        <span style="font-size:${fontSize}px;font-weight:700;color:${color};line-height:1;">
+          ${score}
+        </span>
+      </div>
+      <div style="
+        position:absolute;
+        left:50%;
+        top:${top}px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: ${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-right: ${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-top: ${tail}px solid ${color};
+      "></div>
+    </div>`,
+    iconSize: [w, h],
+    iconAnchor: [w / 2, h],
+    popupAnchor: [0, -Math.round((20 / 18) * PIN_BASE * s)],
   });
+};
 
-const factoryPin = (compliant) => {
+const factoryPin = (compliant, zoom = 7) => {
+  const s = getMarkerScale(zoom);
+  const w = Math.round(PIN_BASE * s);
+  const h = Math.round((24 / 18) * PIN_BASE * s);
+  const circle = Math.round(PIN_BASE * s);
+  const top = Math.round((16 / 18) * PIN_BASE * s);
+  const tail = Math.round((6 / 18) * PIN_BASE * s);
+  const border = Math.max(1, Math.round((1.5 / 18) * PIN_BASE * s));
   const bg = compliant ? "#10b981" : "#ef4444";
   const bgLight = compliant ? "#d1fae5" : "#fee2e2";
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:36px;height:36px;border-radius:10px;background:${bgLight};border:2px solid ${bg};
-      display:flex;align-items:center;justify-content:center;
-      box-shadow:0 2px 10px ${bg}30;
+      position: relative;
+      width: ${w}px;
+      height: ${h}px;
+      transform: translateY(-1px);
     ">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${bg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-        <path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>
-      </svg>
+      <div style="
+        position:absolute;
+        left:0;right:0;top:0;margin:auto;
+        width:${circle}px;height:${circle}px;border-radius:999px;
+        background:${bgLight};
+        border:${border}px solid ${bg};
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <svg width="${Math.round((11 / 18) * PIN_BASE * s)}" height="${Math.round((11 / 18) * PIN_BASE * s)}" viewBox="0 0 24 24" fill="none" stroke="${bg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+          <path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>
+        </svg>
+      </div>
+      <div style="
+        position:absolute;
+        left:50%;top:${top}px;transform:translateX(-50%);
+        width:0;height:0;
+        border-left:${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-right:${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-top:${tail}px solid ${bg};
+      "></div>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -18],
+    iconSize: [w, h],
+    iconAnchor: [w / 2, h],
+    popupAnchor: [0, -Math.round((20 / 18) * PIN_BASE * s)],
   });
 };
 
-const stationPin = (type) => {
+const stationPin = (type, zoom = 7) => {
+  const s = getMarkerScale(zoom);
+  const w = Math.round(PIN_BASE * s);
+  const h = Math.round((24 / 18) * PIN_BASE * s);
+  const circle = Math.round(PIN_BASE * s);
+  const top = Math.round((16 / 18) * PIN_BASE * s);
+  const tail = Math.round((6 / 18) * PIN_BASE * s);
+  const border = Math.max(1, Math.round((1.5 / 18) * PIN_BASE * s));
   const c = type === "AIR" ? "#10b981" : type === "WATER" ? "#3b82f6" : "#ef4444";
   const cLight = type === "AIR" ? "#d1fae5" : type === "WATER" ? "#dbeafe" : "#fee2e2";
   const icon = type === "AIR"
@@ -105,15 +183,46 @@ const stationPin = (type) => {
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:30px;height:30px;border-radius:50%;background:${cLight};border:2px solid ${c};
-      display:flex;align-items:center;justify-content:center;
-      box-shadow:0 2px 8px ${c}25;
+      position: relative;
+      width: ${w}px;
+      height: ${h}px;
+      transform: translateY(-1px);
     ">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+      <div style="
+        position:absolute;
+        left:0;right:0;top:0;margin:auto;
+        width:${circle}px;height:${circle}px;border-radius:999px;
+        background:${cLight};
+        border:${border}px solid ${c};
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <svg width="${Math.round((10 / 18) * PIN_BASE * s)}" height="${Math.round((10 / 18) * PIN_BASE * s)}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+      </div>
+      <div style="
+        position:absolute;
+        left:50%;top:${top}px;transform:translateX(-50%);
+        width:0;height:0;
+        border-left:${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-right:${Math.round((4 / 18) * PIN_BASE * s)}px solid transparent;
+        border-top:${tail}px solid ${c};
+      "></div>
     </div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -15],
+    iconSize: [w, h],
+    iconAnchor: [w / 2, h],
+    popupAnchor: [0, -Math.round((20 / 18) * PIN_BASE * s)],
+  });
+};
+
+const valuePin = (value, zoom = 7) => {
+  const s = getMarkerScale(zoom);
+  const size = Math.round(32 * s);
+  const font = Math.max(9, Math.round(11 * s));
+  return L.divIcon({
+    className: "",
+    html: `<div style="background:#3b82f6;border:2px solid white;color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:${font}px;box-shadow:0 0 12px rgba(59,130,246,0.5)">${value || "–"}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   });
 };
 
@@ -131,20 +240,21 @@ const HeatmapLayer = ({ points }) => {
 
     // Each point: [lat, lng, intensity]
     heatRef.current = L.heatLayer(points, {
-      radius: 80,
-      blur: 60,
+      radius: 70,
+      blur: 50,
       maxZoom: 12,
       max: 1.0,
-      minOpacity: 0.15,
+      minOpacity: 0.25,
+      // Yellow → orange → deep red, similar to choropleth example
       gradient: {
-        0.0: "rgba(158,228,147,0.0)",  // transparent green
-        0.15: "#9BE8A8",               // light green
-        0.30: "#FFE17B",               // soft yellow
-        0.45: "#FFBE7B",               // warm orange
-        0.60: "#FF8C6B",               // salmon
-        0.75: "#FF6B6B",               // coral red
-        0.90: "#CC4B4B",               // deep red
-        1.0: "#8B2252",               // maroon / severe
+        0.0: "rgba(255,255,255,0.0)", // fully transparent
+        0.15: "#fff7bc", // very light yellow
+        0.3: "#fee391",
+        0.45: "#fec44f",
+        0.6: "#fe9929",
+        0.75: "#ec7014",
+        0.9: "#cc4c02",
+        1.0: "#8c2d04", // darkest/red-brown hotspot
       },
     }).addTo(map);
 
@@ -158,6 +268,18 @@ const HeatmapLayer = ({ points }) => {
   return null;
 };
 
+/* ────────── Sync zoom level for marker scaling (AQI-style) ────────── */
+function MapZoomSync({ setZoom }) {
+  const map = useMap();
+  useEffect(() => {
+    setZoom(map.getZoom());
+    const onZoom = () => setZoom(map.getZoom());
+    map.on("zoomend", onZoom);
+    return () => map.off("zoomend", onZoom);
+  }, [map, setZoom]);
+  return null;
+}
+
 /* ────────── Main Component ────────── */
 const PollutionMap = () => {
   const [activeTab, setActiveTab] = useState("air");
@@ -166,12 +288,13 @@ const PollutionMap = () => {
   const [showIndustries, setShowIndustries] = useState(true);
   const [showStations, setShowStations] = useState(true);
   const [showRegions, setShowRegions] = useState(true);
-  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [monthIndex, setMonthIndex] = useState(new Date().getMonth());
   const [heatPoints, setHeatPoints] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [stations, setStations] = useState([]);
   const [regionData, setRegionData] = useState([]);
+  const [zoom, setZoom] = useState(7);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -179,12 +302,29 @@ const PollutionMap = () => {
       if (localStorage.getItem("prithvinet_token")) {
         getIndustries().then((res) => {
           if (res.ok) {
-             setIndustries(res.data.map(i => ({...i, compliant: i.status === 'ACTIVE', violations: 0, lastReport: 'N/A'})));
+            setIndustries(
+              res.data.map((i) => ({
+                ...i,
+                regionName: i.region?.name ?? i.region?.code ?? "Unknown region",
+                compliant: i.status === "ACTIVE",
+                violations: 0,
+                lastReport: "N/A",
+              })),
+            );
           }
         });
         getMonitoringLocations().then((res) => {
           if (res.ok) {
-             setStations(res.data.map(s => ({...s, status: 'Good', aqi: s.type==='AIR'? 45:null, ph: s.type==='WATER'?7.1:null, laeq: s.type==='NOISE'?55:null})));
+            setStations(
+              res.data.map((s) => ({
+                ...s,
+                regionName: s.region?.name ?? "Unknown region",
+                status: "Good",
+                aqi: s.type === "AIR" ? 45 : null,
+                ph: s.type === "WATER" ? 7.1 : null,
+                laeq: s.type === "NOISE" ? 55 : null,
+              })),
+            );
           }
         });
       }
@@ -391,16 +531,23 @@ const PollutionMap = () => {
         <MapContainer
           center={[21.5, 82.0]}
           zoom={7}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+          maxBounds={INDIA_BOUNDS}
+          maxBoundsViscosity={1}
           style={{ height: "100%", width: "100%", background: "#e8ecf1" }}
           zoomControl={false}
         >
+          <MapZoomSync setZoom={setZoom} />
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             attribution="&copy; OpenStreetMap &copy; CARTO"
           />
 
-          {/* ── Real Heatmap Layer ── */}
+          {/* ── Optional Heatmap Layer (disabled by default) ── */}
           {showHeatmap && <HeatmapLayer points={heatPoints} />}
+
+          {/* Choropleth circles removed for a cleaner, marker-only view */}
 
           {/* ── Region compliance markers ── */}
           {showRegions &&
@@ -410,7 +557,7 @@ const PollutionMap = () => {
                 <Marker
                   key={region.id}
                   position={[region.lat, region.lng]}
-                  icon={regionIcon(color, region.compliance)}
+                  icon={regionIcon(color, region.compliance, zoom)}
                   eventHandlers={{
                     click: () => navigate(`/region/${region.id}`),
                   }}
@@ -576,7 +723,7 @@ const PollutionMap = () => {
               <Marker
                 key={ind.id}
                 position={[ind.lat, ind.lng]}
-                icon={factoryPin(ind.compliant)}
+                icon={factoryPin(ind.compliant, zoom)}
               >
                 <Popup className="custom-popup">
                   <div
@@ -599,7 +746,7 @@ const PollutionMap = () => {
                         color: "#64748b",
                       }}
                     >
-                      {ind.type} • {ind.region}
+                      {ind.type} • {ind.regionName}
                     </p>
                     <div
                       style={{
@@ -655,7 +802,7 @@ const PollutionMap = () => {
               <Marker
                 key={stn.id}
                 position={[stn.lat, stn.lng]}
-                icon={stationPin(stn.type)}
+                icon={stationPin(stn.type, zoom)}
               >
                 <Popup className="custom-popup">
                   <div
@@ -678,7 +825,7 @@ const PollutionMap = () => {
                         color: "#64748b",
                       }}
                     >
-                      {stn.type} Station • {stn.region}
+                      {stn.type} Station • {stn.regionName}
                     </p>
                     <div
                       style={{
@@ -750,13 +897,7 @@ const PollutionMap = () => {
               <Marker
                 key={loc.id}
                 position={[loc.lat || 21.25, loc.lng || 81.62]}
-                icon={L.divIcon({
-                  className: "",
-                  html: `<div style="background:#3b82f6;border:2px solid white;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;box-shadow:0 0 12px rgba(59,130,246,0.5)">${value || "–"}</div>`,
-                  iconSize: [32, 32],
-                  iconAnchor: [16, 16],
-                  popupAnchor: [0, -16],
-                })}
+                icon={valuePin(value || "–", zoom)}
               >
                 <Popup className="custom-popup">
                   <div

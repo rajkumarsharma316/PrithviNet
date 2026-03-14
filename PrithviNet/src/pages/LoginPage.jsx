@@ -64,10 +64,10 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="auth-logo">
             <div className="auth-logo-icon">
-              <Activity size={28} color="white" />
+              <Activity size={24} color="white" />
             </div>
-            <h1 className="glow-text" style={{ fontSize: "1.8rem", margin: 0 }}>
-              Prithvi<span style={{ color: "#10b981" }}>Net</span>
+            <h1 style={{ fontSize: "1.7rem", margin: 0, fontWeight: 650 }}>
+              Prithvi<span style={{ color: "var(--accent-secondary)" }}>Net</span>
             </h1>
             <p
               style={{

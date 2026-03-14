@@ -24,6 +24,8 @@ import {
   Briefcase,
   Upload,
   Eye,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 
 const Layout = () => {
@@ -49,35 +51,47 @@ const Layout = () => {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "12px",
-            marginBottom: "32px",
+            gap: "10px",
+            marginBottom: "28px",
           }}
         >
           <div
             style={{
-              width: "40px",
-              height: "40px",
-              background: "linear-gradient(135deg, #10b981, #059669)",
-              borderRadius: "12px",
+              width: "36px",
+              height: "36px",
+              borderRadius: "999px",
+              border: "2px solid #92400e",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(16,185,129,0.3)",
+              backgroundColor: "#fffbeb",
             }}
           >
-            <Activity size={24} color="white" />
+            <Activity size={18} color="#92400e" />
           </div>
-          <h1
-            className="glow-text"
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              margin: 0,
-              letterSpacing: "1px",
-            }}
-          >
-            Prithvi<span style={{ color: "#10b981" }}>Net</span>
-          </h1>
+          <div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "#6b7280",
+              }}
+            >
+              Government of Chhattisgarh
+            </div>
+            <h1
+              style={{
+                fontSize: "1.2rem",
+                fontWeight: 700,
+                margin: "2px 0 0",
+                letterSpacing: "0.02em",
+                color: "#111827",
+              }}
+            >
+              PrithviNet Environmental Portal
+            </h1>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -211,6 +225,28 @@ const Layout = () => {
                 to="/industry-dashboard"
                 icon={<Upload size={18} />}
                 label="Submit Report"
+              />
+            </>
+          )}
+
+          {/* ── AI LAB (for any authenticated user) ── */}
+          {isLoggedIn && (
+            <>
+              <SidebarSection label="AI LAB" />
+              <SideLink
+                to="/ai/assistant"
+                icon={<Sparkles size={18} />}
+                label="Copilot Chat"
+              />
+              <SideLink
+                to="/ai/report"
+                icon={<FileText size={18} />}
+                label="AI Report"
+              />
+              <SideLink
+                to="/ai/forecast"
+                icon={<MapIcon size={18} />}
+                label="Forecast"
               />
             </>
           )}

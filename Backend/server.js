@@ -17,6 +17,7 @@ import prescribedLimitRoutes from "./routes/prescribedLimits.js";
 import monitoringRoutes from "./routes/monitoring.js";
 import alertRoutes from "./routes/alerts.js";
 import publicRoutes from "./routes/public.js";
+import aiRoutes from "./routes/ai.js";
 import monitoringTeamRoutes from "./routes/monitoringTeams.js";
 
 const app = Fastify({ logger: true });
@@ -38,6 +39,7 @@ app.register(monitoringRoutes, { prefix: "/api/monitoring" });
 app.register(alertRoutes, { prefix: "/api/alerts" });
 app.register(publicRoutes, { prefix: "/api/public" });
 app.register(monitoringTeamRoutes, { prefix: "/api/monitoring-teams" });
+app.register(aiRoutes, { prefix: "/api/ai" });
 
 // ─── HEALTH CHECK ───────────────────────────────────────
 app.get("/api/health", async () => ({

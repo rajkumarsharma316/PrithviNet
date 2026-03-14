@@ -48,6 +48,9 @@ import RegionalZonePage from "./pages/RegionalZonePage";
 import RegionDashboard from "./pages/RegionDashboard";
 import IndustryDashboard from "./pages/IndustryDashboard";
 import MonitoringTeamsPage from "./pages/MonitoringTeamsPage";
+import AiAssistantPage from "./pages/AiAssistantPage";
+import AiReportPage from "./pages/AiReportPage";
+import AiForecastPage from "./pages/AiForecastPage";
 
 function App() {
   return (
@@ -140,6 +143,11 @@ function App() {
             <Route path="region-dashboard" element={<RegionDashboard />} />
             <Route path="industry-dashboard" element={<IndustryDashboard />} />
             <Route path="monitoring-teams" element={<MonitoringTeamsPage />} />
+
+            {/* AI features */}
+            <Route path="ai/assistant" element={<AiAssistantPage />} />
+            <Route path="ai/report" element={<AiReportPage />} />
+            <Route path="ai/forecast" element={<AiForecastPage />} />
 
             {/* Admin Panel */}
             <Route path="admin/offices" element={<AdminOfficesPage />} />

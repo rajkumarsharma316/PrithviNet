@@ -103,3 +103,18 @@ export const getRegionSummary = () => api("GET", "/public/region-summary");
 export const getRegionTrend = (regionId) =>
   api("GET", `/public/region-trend/${regionId}`);
 export const getYoYTrend = (type) => api("GET", `/public/yoy-trend/${type}`);
+
+// ─── AI FEATURES ───────────────────────────────────────────
+export const aiChat = (message, history = []) =>
+  api("POST", "/ai/chat", { message, history });
+
+export const aiGenerateReport = (days = 7) =>
+  api("POST", "/ai/report", { days });
+
+export const aiForecast = (type, locationId, hours = 72) => {
+  const params = new URLSearchParams();
+  if (type) params.set("type", type);
+  if (locationId) params.set("locationId", locationId);
+  if (hours) params.set("hours", String(hours));
+  return api("GET", `/ai/forecast?${params.toString()}`);
+};
