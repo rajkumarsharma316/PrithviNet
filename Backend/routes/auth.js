@@ -144,7 +144,7 @@ export default async function authRoutes(fastify, opts) {
             email: true,
             role: true,
             phone: true,
-            region: { select: { id: true, name: true, code: true } },
+            region: { select: { id: true, name: true, code: true, lat: true, lng: true, district: true } },
             industry: {
               select: {
                 id: true,
@@ -211,7 +211,7 @@ export default async function authRoutes(fastify, opts) {
           email: true,
           role: true,
           phone: true,
-          region: { select: { id: true, name: true, code: true } },
+          region: { select: { id: true, name: true, code: true, lat: true, lng: true, district: true } },
           industry: {
             select: {
               id: true,
@@ -247,7 +247,7 @@ export default async function authRoutes(fastify, opts) {
           email: true,
           role: true,
           phone: true,
-          region: { select: { id: true, name: true, code: true } },
+          region: { select: { id: true, name: true, code: true, lat: true, lng: true, district: true } },
           industry: {
             select: {
               id: true,

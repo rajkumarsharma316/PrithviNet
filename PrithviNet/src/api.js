@@ -92,3 +92,14 @@ export const createWaterSource = (body) => api("POST", "/water-sources", body);
 // ─── PRESCRIBED LIMITS & UNITS ────────────────────────────
 export const getPrescribedLimits = () => api("GET", "/prescribed-limits");
 export const getMonitoringUnits = () => api("GET", "/monitoring-units");
+
+// ─── MONITORING TEAMS ─────────────────────────────────────
+export const getMonitoringTeams = () => api("GET", "/monitoring-teams");
+export const createMonitoringTeam = (body) =>
+  api("POST", "/monitoring-teams", body);
+
+// ─── REGION SUMMARY & TRENDS ──────────────────────────────
+export const getRegionSummary = () => api("GET", "/public/region-summary");
+export const getRegionTrend = (regionId) =>
+  api("GET", `/public/region-trend/${regionId}`);
+export const getYoYTrend = (type) => api("GET", `/public/yoy-trend/${type}`);

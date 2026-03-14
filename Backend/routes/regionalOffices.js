@@ -1,4 +1,5 @@
 import { authorize } from "../middleware/authorize.js";
+import bcrypt from "bcryptjs";
 
 export default async function regionalOfficeRoutes(fastify, opts) {
   // GET all
@@ -46,7 +47,7 @@ export default async function regionalOfficeRoutes(fastify, opts) {
     },
   );
 
-  // POST create
+  // POST create (also creates a REGIONAL_OFFICER user for the office)
   fastify.post(
     "/",
     {
@@ -54,7 +55,7 @@ export default async function regionalOfficeRoutes(fastify, opts) {
       schema: {
         body: {
           type: "object",
-          required: ["name", "code", "lat", "lng", "district"],
+          required: ["name", "code", "lat", "lng", "district", "officerEmail", "officerPassword"],
           properties: {
             name: { type: "string" },
             code: { type: "string" },
@@ -63,15 +64,41 @@ export default async function regionalOfficeRoutes(fastify, opts) {
             address: { type: "string" },
             district: { type: "string" },
             state: { type: "string" },
+            officerEmail: { type: "string", format: "email" },
+            officerPassword: { type: "string", minLength: 6 },
           },
         },
       },
     },
     async (request, reply) => {
-      const office = await fastify.prisma.regionalOffice.create({
-        data: request.body,
+      const { officerEmail, officerPassword, ...officeData } = request.body;
+
+      // Check if email already taken
+      const existing = await fastify.prisma.user.findUnique({ where: { email: officerEmail } });
+      if (existing) {
+        return reply.code(409).send({ error: "A user with this email already exists" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(officerPassword, salt);
+
+      // Create office + officer user in a transaction
+      const [office, user] = await fastify.prisma.$transaction(async (tx) => {
+        const newOffice = await tx.regionalOffice.create({ data: officeData });
+        const newUser = await tx.user.create({
+          data: {
+            name: `${officeData.name} Officer`,
+            email: officerEmail,
+            password: hashedPassword,
+            role: "REGIONAL_OFFICER",
+            regionId: newOffice.id,
+          },
+          select: { id: true, name: true, email: true, role: true },
+        });
+        return [newOffice, newUser];
       });
-      return reply.code(201).send(office);
+
+      return reply.code(201).send({ office, officer: user });
     },
   );
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   MapContainer,
@@ -34,11 +34,16 @@ import {
   AreaChart,
 } from "recharts";
 import {
-  REGIONS,
-  REGION_DETAILS,
-  getComplianceColor,
-  getRiskLevel,
-} from "../mockData";
+  getRegionSummary,
+  getRegionTrend,
+  getIndustries,
+  getMonitoringLocations,
+} from "../api";
+
+const getComplianceColor = (c) =>
+  c >= 80 ? "#10b981" : c >= 60 ? "#f59e0b" : "#ef4444";
+const getRiskLevel = (c) =>
+  c >= 80 ? "Low" : c >= 60 ? "Medium" : "High";
 
 const createIcon = (color, label) =>
   L.divIcon({
@@ -57,57 +62,95 @@ const factoryIcon = L.divIcon({
   popupAnchor: [0, -16],
 });
 
-// Generate mock trend data for region
-const genRegionTrend = () =>
-  Array.from({ length: 30 }, (_, i) => ({
-    day: `Day ${i + 1}`,
-    aqi: Math.round(120 + Math.random() * 80 - 40 + Math.sin(i / 5) * 20),
-    ph: parseFloat((7.0 + Math.random() * 0.8 - 0.4).toFixed(1)),
-    noise: Math.round(60 + Math.random() * 20 - 10),
-  }));
-
 const RegionalZonePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [trendType, setTrendType] = useState("air");
 
-  const region = REGIONS.find((r) => r.id === id) || REGIONS[0];
-  const detail = REGION_DETAILS[id] || REGION_DETAILS.raipur;
-  
+  const [region, setRegion] = useState(null);
   const [industries, setIndustries] = useState([]);
   const [stations, setStations] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    import("../api").then(({ getIndustries, getMonitoringLocations }) => {
-      getIndustries().then((res) => {
-        if (res.ok) {
-          const regional = res.data.filter(i => i.regionId === region.id);
-          setIndustries(regional.map(i => ({
-             ...i, 
-             compliant: i.status === 'ACTIVE',
-             violations: 0,
-             lastReport: 'N/A',
-             problem: null
-          })));
-        }
-      });
-      getMonitoringLocations().then((res) => {
-        if (res.ok) {
-          const regional = res.data.filter(s => s.regionId === region.id);
-          // Add default aqi/ph/laeq for maps so they dont crash
-          setStations(regional.map(s => ({
+  useEffect(() => {
+    setLoading(true);
+    let loaded = 0;
+    const checkDone = () => { loaded++; if (loaded >= 4) setLoading(false); };
+
+    // Fetch region summary to find this region
+    getRegionSummary().then((res) => {
+      if (res.ok) {
+        const found = res.data.find((r) => r.id === id);
+        if (found) setRegion(found);
+      }
+      checkDone();
+    }).catch(checkDone);
+
+    // Fetch industries for this region
+    getIndustries().then((res) => {
+      if (res.ok) {
+        const regional = res.data.filter((i) => i.regionId === id);
+        setIndustries(
+          regional.map((i) => ({
+            ...i,
+            compliant: i.status === "ACTIVE",
+            violations: 0,
+            lastReport: "N/A",
+            problem: null,
+          })),
+        );
+      }
+      checkDone();
+    }).catch(checkDone);
+
+    // Fetch monitoring locations for this region
+    getMonitoringLocations().then((res) => {
+      if (res.ok) {
+        const regional = res.data.filter((s) => s.regionId === id);
+        setStations(
+          regional.map((s) => ({
             ...s,
-            aqi: s.type === 'AIR' ? 45 : null,
-            ph: s.type === 'WATER' ? 7.1 : null,
-            laeq: s.type === 'NOISE' ? 55 : null
-          })));
-        }
-      });
-    });
-  }, [region.id]);
+            aqi: s.type === "AIR" ? 45 : null,
+            ph: s.type === "WATER" ? 7.1 : null,
+            laeq: s.type === "NOISE" ? 55 : null,
+            status: "Good",
+          })),
+        );
+      }
+      checkDone();
+    }).catch(checkDone);
+
+    // Fetch trend data
+    getRegionTrend(id).then((res) => {
+      if (res.ok && Array.isArray(res.data)) setTrendData(res.data);
+      checkDone();
+    }).catch(checkDone);
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="page-loading">
+        <span className="spinner"></span>
+      </div>
+    );
+  }
+
+  if (!region) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <h3>Region not found</h3>
+        <p style={{ color: "var(--text-secondary)" }}>This region could not be loaded.</p>
+        <button onClick={() => navigate(-1)} style={{ padding: "8px 16px", borderRadius: "8px", background: "var(--accent-primary)", color: "white", border: "none", cursor: "pointer" }}>Go Back</button>
+      </div>
+    );
+  }
 
   const color = getComplianceColor(region.compliance);
-  const trendData = genRegionTrend();
+  const totalInd = region.industries?.total || 0;
+  const compliantInd = region.industries?.compliant || 0;
+  const nonCompliantInd = region.industries?.nonCompliant || 0;
+  const pendingInd = region.industries?.pending || 0;
 
   return (
     <div
@@ -194,45 +237,44 @@ const RegionalZonePage = () => {
         <StatCard
           icon={<Factory size={18} />}
           label="Total Industries"
-          value={detail.industries.total}
+          value={totalInd}
           color="#3b82f6"
         />
         <StatCard
           icon={<CheckCircle size={18} />}
           label="Compliant"
-          value={`${detail.industries.compliant} (${Math.round((detail.industries.compliant / detail.industries.total) * 100)}%)`}
+          value={totalInd > 0 ? `${compliantInd} (${Math.round((compliantInd / totalInd) * 100)}%)` : "0"}
           color="#10b981"
         />
         <StatCard
           icon={<XCircle size={18} />}
           label="Non-Compliant"
-          value={`${detail.industries.nonCompliant} (${Math.round((detail.industries.nonCompliant / detail.industries.total) * 100)}%)`}
+          value={totalInd > 0 ? `${nonCompliantInd} (${Math.round((nonCompliantInd / totalInd) * 100)}%)` : "0"}
           color="#ef4444"
         />
         <StatCard
           icon={<MapPin size={18} />}
           label="Monitoring Stations"
-          value={detail.stations}
+          value={region.stationsCount || 0}
           color="#f59e0b"
         />
         <StatCard
           icon={<AlertTriangle size={18} />}
-          label="Pending Inspections"
-          value={detail.industries.pending}
+          label="Pending"
+          value={pendingInd}
           color="#f59e0b"
         />
       </div>
 
-      {/* Region Map + Recent Violations side by side */}
+      {/* Region Map */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "2fr 1fr",
+          gridTemplateColumns: "1fr",
           gap: "20px",
           minHeight: "350px",
         }}
       >
-        {/* Map */}
         <div
           className="glass-panel"
           style={{ overflow: "hidden", minHeight: "350px" }}
@@ -240,10 +282,10 @@ const RegionalZonePage = () => {
           <MapContainer
             center={[region.lat, region.lng]}
             zoom={11}
-            style={{ height: "100%", width: "100%", background: "#0a0f1c" }}
+            style={{ height: "100%", width: "100%", background: "#e8ecf1" }}
             zoomControl={false}
           >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
             {stations.map((s) => (
               <Marker
                 key={s.id}
@@ -313,134 +355,6 @@ const RegionalZonePage = () => {
             ))}
           </MapContainer>
         </div>
-
-        {/* Recent Violations + Actions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div className="glass-panel" style={{ padding: "20px", flex: 1 }}>
-            <h3
-              style={{
-                fontSize: "0.95rem",
-                margin: "0 0 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <AlertTriangle size={16} color="#ef4444" /> Recent Violations (30
-              days)
-            </h3>
-            {detail.recentViolations.map((v, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "10px 0",
-                  borderBottom:
-                    i < detail.recentViolations.length - 1
-                      ? "1px solid rgba(255,255,255,0.05)"
-                      : "none",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  • {v.type}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    color: "#ef4444",
-                  }}
-                >
-                  {v.cases} cases
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="glass-panel" style={{ padding: "20px" }}>
-            <p
-              style={{
-                fontSize: "0.78rem",
-                color: "var(--text-muted)",
-                margin: "0 0 6px",
-              }}
-            >
-              Trend vs Last Month
-            </p>
-            <p
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                margin: "0 0 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                color: detail.trend.direction === "up" ? "#10b981" : "#ef4444",
-              }}
-            >
-              {detail.trend.direction === "up" ? (
-                <TrendingUp size={18} />
-              ) : (
-                <TrendingDown size={18} />
-              )}
-              {detail.trend.change > 0 ? "+" : ""}
-              {detail.trend.change}%
-            </p>
-            <p
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--text-muted)",
-                margin: 0,
-              }}
-            >
-              📋 {detail.actions}
-            </p>
-          </div>
-
-          {/* Average readings */}
-          <div className="glass-panel" style={{ padding: "20px" }}>
-            <h4
-              style={{
-                fontSize: "0.85rem",
-                margin: "0 0 12px",
-                color: "var(--text-secondary)",
-              }}
-            >
-              Average Readings
-            </h4>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "8px",
-              }}
-            >
-              <MiniStat
-                label="AQI"
-                value={detail.avgAir.aqi}
-                color={
-                  detail.avgAir.aqi > 150
-                    ? "#ef4444"
-                    : detail.avgAir.aqi > 100
-                      ? "#fbbf24"
-                      : "#10b981"
-                }
-              />
-              <MiniStat label="pH" value={detail.avgWater.ph} color="#3b82f6" />
-              <MiniStat
-                label="dB"
-                value={detail.avgNoise.laeq}
-                color={detail.avgNoise.laeq > 70 ? "#ef4444" : "#10b981"}
-              />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Trend Charts */}
@@ -454,7 +368,7 @@ const RegionalZonePage = () => {
           }}
         >
           <h3 style={{ fontSize: "1rem", margin: 0 }}>
-            Regional Pollution Trends (30 Days)
+            Regional Pollution Trends
           </h3>
           <div
             style={{
@@ -494,78 +408,99 @@ const RegionalZonePage = () => {
           </div>
         </div>
         <div style={{ height: "250px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={trendData}
-              margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+          {trendData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={trendData}
+                margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={
+                        trendType === "air"
+                          ? "#10b981"
+                          : trendType === "water"
+                            ? "#3b82f6"
+                            : "#ef4444"
+                      }
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={
+                        trendType === "air"
+                          ? "#10b981"
+                          : trendType === "water"
+                            ? "#3b82f6"
+                            : "#ef4444"
+                      }
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.05)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  stroke="rgba(255,255,255,0.3)"
+                  fontSize={10}
+                  tickMargin={8}
+                  tickFormatter={(v) => {
+                    if (!v) return "";
+                    const d = new Date(v + "T00:00:00");
+                    return `${d.getDate()} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]}`;
+                  }}
+                  interval={Math.max(0, Math.floor(trendData.length / 6) - 1)}
+                />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(10,15,25,0.95)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: "8px",
+                    color: "white",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey={
+                    trendType === "air"
+                      ? "aqi"
+                      : trendType === "water"
+                        ? "ph"
+                        : "noise"
+                  }
+                  stroke={
+                    trendType === "air"
+                      ? "#10b981"
+                      : trendType === "water"
+                        ? "#3b82f6"
+                        : "#ef4444"
+                  }
+                  strokeWidth={2}
+                  fill="url(#trendGrad)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+                fontSize: "0.9rem",
+              }}
             >
-              <defs>
-                <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={
-                      trendType === "air"
-                        ? "#10b981"
-                        : trendType === "water"
-                          ? "#3b82f6"
-                          : "#ef4444"
-                    }
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={
-                      trendType === "air"
-                        ? "#10b981"
-                        : trendType === "water"
-                          ? "#3b82f6"
-                          : "#ef4444"
-                    }
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="day"
-                stroke="rgba(255,255,255,0.3)"
-                fontSize={10}
-                tickMargin={8}
-              />
-              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
-              <Tooltip
-                contentStyle={{
-                  background: "rgba(10,15,25,0.95)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: "8px",
-                  color: "white",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey={
-                  trendType === "air"
-                    ? "aqi"
-                    : trendType === "water"
-                      ? "ph"
-                      : "noise"
-                }
-                stroke={
-                  trendType === "air"
-                    ? "#10b981"
-                    : trendType === "water"
-                      ? "#3b82f6"
-                      : "#ef4444"
-                }
-                strokeWidth={2}
-                fill="url(#trendGrad)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+              No monitoring data available for this region
+            </div>
+          )}
         </div>
       </div>
 
@@ -781,23 +716,6 @@ const StatCard = ({ icon, label, value, color }) => (
         {value}
       </p>
     </div>
-  </div>
-);
-
-const MiniStat = ({ label, value, color }) => (
-  <div style={{ textAlign: "center" }}>
-    <p
-      style={{
-        fontSize: "0.7rem",
-        color: "var(--text-muted)",
-        margin: "0 0 2px",
-      }}
-    >
-      {label}
-    </p>
-    <p style={{ fontSize: "1rem", fontWeight: 700, color, margin: 0 }}>
-      {value}
-    </p>
   </div>
 );
 

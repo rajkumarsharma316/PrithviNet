@@ -15,14 +15,14 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
-import { getOverview, getMonitoringLocations } from "../api";
-import { REGIONS, REGION_DETAILS } from "../mockData";
+import { getOverview, getMonitoringLocations, getRegionSummary } from "../api";
 
 const MonitoringCards = () => {
   const [overview, setOverview] = useState(null);
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [alerts, setAlerts] = useState([]);
+  const [regionData, setRegionData] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,18 +75,21 @@ const MonitoringCards = () => {
         if (res.ok) setAlerts(res.data);
       });
     });
+    getRegionSummary().then((res) => {
+      if (res.ok) setRegionData(res.data);
+    });
   }, []);
 
   const stats = overview?.stats;
   const latest = overview?.latestReadings;
 
-  // Compliance summary from mock data
-  const totalIndustries = REGIONS.reduce(
-    (s, r) => s + (REGION_DETAILS[r.id]?.industries?.total || 0),
+  // Compliance summary from real API data
+  const totalIndustries = regionData.reduce(
+    (s, r) => s + (r.industries?.total || 0),
     0,
   );
-  const compliantIndustries = REGIONS.reduce(
-    (s, r) => s + (REGION_DETAILS[r.id]?.industries?.compliant || 0),
+  const compliantIndustries = regionData.reduce(
+    (s, r) => s + (r.industries?.compliant || 0),
     0,
   );
   const nonCompliantIndustries = totalIndustries - compliantIndustries;
@@ -381,9 +384,9 @@ const MonitoringCards = () => {
             }}
           >
             <MiniInfo label="Total Industries" value={totalIndustries} />
-            <MiniInfo label="Regions" value={REGIONS.length} />
-            <MiniInfo label="Avg. Resolution" value="4.2h" />
-            <MiniInfo label="Overdue Reports" value="5" />
+            <MiniInfo label="Regions" value={regionData.length || stats?.totalRegions || "—"} />
+            <MiniInfo label="Compliant" value={compliantIndustries} />
+            <MiniInfo label="Non-Compliant" value={nonCompliantIndustries} />
           </div>
         </div>
       </div>

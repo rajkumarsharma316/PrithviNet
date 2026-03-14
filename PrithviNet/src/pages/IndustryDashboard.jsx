@@ -63,17 +63,22 @@ const IndustryDashboard = () => {
     if (["ph", "bod"].includes(activeParam)) type = "WATER";
     if (activeParam === "noise") type = "NOISE";
 
-    getMonitoringData(type, 30).then((res) => {
+    getMonitoringData(type, 500).then((res) => {
       if (res.ok && res.data.length > 0) {
-        const mapped = res.data
+        // Aggregate by day to get daily averages
+        const dayMap = {};
+        res.data.forEach((d) => {
+          const dateStr = new Date(d.timestamp).toISOString().slice(0, 10);
+          if (!dayMap[dateStr]) dayMap[dateStr] = { date: dateStr, sum: 0, n: 0 };
+          const val = d[activeParam === "noise" ? "laeq" : activeParam];
+          if (val != null) { dayMap[dateStr].sum += val; dayMap[dateStr].n++; }
+        });
+        const mapped = Object.values(dayMap)
+          .sort((a, b) => a.date.localeCompare(b.date))
           .map((d) => ({
-            day: new Date(d.timestamp).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            }),
-            [activeParam]: d[activeParam] || 0,
-          }))
-          .reverse();
+            date: d.date,
+            [activeParam]: d.n > 0 ? parseFloat((d.sum / d.n).toFixed(1)) : 0,
+          }));
         setEmissionsData(mapped);
       } else {
         setEmissionsData([]);
@@ -503,9 +508,15 @@ const IndustryDashboard = () => {
                   vertical={false}
                 />
                 <XAxis
-                  dataKey="day"
+                  dataKey="date"
                   stroke="rgba(255,255,255,0.3)"
                   fontSize={10}
+                  tickFormatter={(v) => {
+                    if (!v) return "";
+                    const d = new Date(v + "T00:00:00");
+                    return `${d.getDate()} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]}`;
+                  }}
+                  interval={Math.max(0, Math.floor(emissionsData.length / 7) - 1)}
                 />
                 <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
                 <Tooltip
@@ -515,6 +526,11 @@ const IndustryDashboard = () => {
                     borderRadius: "8px",
                     color: "white",
                   }}
+                  labelFormatter={(v) => {
+                    if (!v) return "";
+                    const d = new Date(v + "T00:00:00");
+                    return `${d.getDate()} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]} ${d.getFullYear()}`;
+                  }}
                 />
                 <Area
                   type="monotone"
@@ -522,6 +538,7 @@ const IndustryDashboard = () => {
                   stroke={currentParam.color}
                   strokeWidth={2}
                   fill="url(#emGrad)"
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>

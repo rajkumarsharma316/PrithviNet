@@ -36,6 +36,8 @@ export default function AdminOfficesPage() {
       address: "",
       lat: "",
       lng: "",
+      officerEmail: "",
+      officerPassword: "",
     });
     setModal("create");
     setError("");
@@ -262,6 +264,30 @@ export default function AdminOfficesPage() {
                         step="any"
                         value={form.lng}
                         onChange={(e) => u("lng", e.target.value)}
+                      />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginTop: '8px' }}>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Officer Account</p>
+                    </div>
+                    <div>
+                      <label>Officer Email</label>
+                      <input
+                        type="email"
+                        value={form.officerEmail}
+                        onChange={(e) => u("officerEmail", e.target.value)}
+                        required
+                        placeholder="officer@prithvinet.gov.in"
+                      />
+                    </div>
+                    <div>
+                      <label>Officer Password</label>
+                      <input
+                        type="password"
+                        value={form.officerPassword}
+                        onChange={(e) => u("officerPassword", e.target.value)}
+                        required
+                        minLength={6}
+                        placeholder="Min. 6 characters"
                       />
                     </div>
                   </>

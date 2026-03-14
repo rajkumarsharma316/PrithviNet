@@ -47,6 +47,7 @@ import RegionalZonePage from "./pages/RegionalZonePage";
 // Role-based dashboards
 import RegionDashboard from "./pages/RegionDashboard";
 import IndustryDashboard from "./pages/IndustryDashboard";
+import MonitoringTeamsPage from "./pages/MonitoringTeamsPage";
 
 function App() {
   return (
@@ -138,6 +139,7 @@ function App() {
             {/* Role-based Dashboards */}
             <Route path="region-dashboard" element={<RegionDashboard />} />
             <Route path="industry-dashboard" element={<IndustryDashboard />} />
+            <Route path="monitoring-teams" element={<MonitoringTeamsPage />} />
 
             {/* Admin Panel */}
             <Route path="admin/offices" element={<AdminOfficesPage />} />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -8,19 +8,16 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ReferenceLine,
 } from "recharts";
 import {
   TrendingDown,
-  TrendingUp,
-  Minus,
   Wind,
   Droplets,
   Volume2,
   ArrowDown,
   ArrowUp,
 } from "lucide-react";
-import { generateYoYData } from "../mockData";
+import { getYoYTrend } from "../api";
 
 const TYPES = [
   {
@@ -48,13 +45,37 @@ const TYPES = [
 
 const YearOverYearTrends = () => {
   const [activeType, setActiveType] = useState("air");
-  const data = generateYoYData(activeType);
-  const typeInfo = TYPES.find((t) => t.key === activeType);
+  const [data, setData] = useState([]);
+  const [years, setYears] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const annualAvg = (key) =>
-    (data.reduce((s, d) => s + d[key], 0) / data.length).toFixed(
+  useEffect(() => {
+    setLoading(true);
+    getYoYTrend(activeType).then((res) => {
+      if (res.ok && res.data) {
+        setYears(res.data.years || []);
+        setData(res.data.data || []);
+      } else {
+        setData([]);
+        setYears([]);
+      }
+      setLoading(false);
+    });
+  }, [activeType]);
+
+  const typeInfo = TYPES.find((t) => t.key === activeType);
+  const yKeys = years.map((y) => `y${y}`);
+  const colors = ["#64748b", "#fbbf24", typeInfo.color];
+
+  const annualAvg = (key) => {
+    const vals = data.filter((d) => d[key] != null);
+    if (vals.length === 0) return "—";
+    return (vals.reduce((s, d) => s + d[key], 0) / vals.length).toFixed(
       activeType === "water" ? 1 : 0,
     );
+  };
+
+  const hasData = data.some((d) => yKeys.some((k) => d[k] != null));
 
   return (
     <div
@@ -95,7 +116,7 @@ const YearOverYearTrends = () => {
               margin: 0,
             }}
           >
-            Monthly average comparison across years with target benchmarks
+            Monthly average comparison across years
           </p>
         </div>
         <div
@@ -146,180 +167,196 @@ const YearOverYearTrends = () => {
           {typeInfo.label} — Monthly Average
         </h3>
         <div style={{ height: "320px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+          {loading ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                stroke="rgba(255,255,255,0.3)"
-                fontSize={11}
-                tickMargin={10}
-              />
-              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} />
-              <Tooltip content={<CustomTooltip typeInfo={typeInfo} />} />
-              <Legend
-                verticalAlign="top"
-                height={36}
-                formatter={(value) => {
-                  const labels = {
-                    y2022: "2022",
-                    y2023: "2023",
-                    y2024: "2024",
-                    target: "Target",
-                  };
-                  return (
-                    <span
-                      style={{
-                        color: "var(--text-secondary)",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      {labels[value] || value}
-                    </span>
-                  );
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="y2022"
-                stroke="#64748b"
-                strokeWidth={1.5}
-                strokeDasharray="5 5"
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="y2023"
-                stroke="#fbbf24"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="y2024"
-                stroke={typeInfo.color}
-                strokeWidth={3}
-                dot={{ fill: typeInfo.color, r: 3 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="target"
-                stroke="#ef4444"
-                strokeWidth={1.5}
-                strokeDasharray="8 4"
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              <span className="spinner"></span>
+            </div>
+          ) : !hasData ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+                fontSize: "0.9rem",
+              }}
+            >
+              No monitoring data available
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={data}
+                margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.05)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="month"
+                  stroke="rgba(255,255,255,0.3)"
+                  fontSize={11}
+                  tickMargin={10}
+                />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} />
+                <Tooltip content={<CustomTooltip typeInfo={typeInfo} years={years} />} />
+                <Legend
+                  verticalAlign="top"
+                  height={36}
+                  formatter={(value) => {
+                    const yr = value.replace("y", "");
+                    return (
+                      <span
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        {yr}
+                      </span>
+                    );
+                  }}
+                />
+                {yKeys.map((k, i) => (
+                  <Line
+                    key={k}
+                    type="monotone"
+                    dataKey={k}
+                    stroke={colors[i] || typeInfo.color}
+                    strokeWidth={i === yKeys.length - 1 ? 3 : i === 0 ? 1.5 : 2}
+                    strokeDasharray={i === 0 ? "5 5" : undefined}
+                    dot={i === yKeys.length - 1 ? { fill: typeInfo.color, r: 3 } : false}
+                    activeDot={i === yKeys.length - 1 ? { r: 6 } : undefined}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
       {/* Data Table */}
-      <div className="glass-panel" style={{ overflow: "hidden" }}>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>2022</th>
-                <th>2023</th>
-                <th>2024</th>
-                <th>Target</th>
-                <th>% Change (YoY)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row) => (
-                <tr key={row.month}>
-                  <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                    {row.month}
+      {hasData && (
+        <div className="glass-panel" style={{ overflow: "hidden" }}>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  {years.map((y) => (
+                    <th key={y}>{y}</th>
+                  ))}
+                  <th>% Change (YoY)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row) => (
+                  <tr key={row.month}>
+                    <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                      {row.month}
+                    </td>
+                    {yKeys.map((k, i) => (
+                      <td
+                        key={k}
+                        style={
+                          i === yKeys.length - 1
+                            ? { fontWeight: 600, color: typeInfo.color }
+                            : {}
+                        }
+                      >
+                        {row[k] != null
+                          ? activeType === "water"
+                            ? row[k].toFixed(1)
+                            : row[k]
+                          : "—"}
+                      </td>
+                    ))}
+                    <td>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          color: row.yoyChange <= 0 ? "#10b981" : "#ef4444",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {row.yoyChange <= 0 ? (
+                          <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUp size={14} />
+                        )}
+                        {row.yoyChange}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {/* Annual Average Row */}
+                <tr
+                  style={{
+                    borderTop: "2px solid var(--glass-border)",
+                    fontWeight: 700,
+                  }}
+                >
+                  <td style={{ color: "var(--text-primary)", fontWeight: 700 }}>
+                    Annual Avg
                   </td>
-                  <td>
-                    {activeType === "water" ? row.y2022.toFixed(1) : row.y2022}
-                  </td>
-                  <td>
-                    {activeType === "water" ? row.y2023.toFixed(1) : row.y2023}
-                  </td>
-                  <td style={{ fontWeight: 600, color: typeInfo.color }}>
-                    {activeType === "water" ? row.y2024.toFixed(1) : row.y2024}
-                  </td>
-                  <td style={{ color: "#ef4444" }}>
-                    {activeType === "water"
-                      ? row.target.toFixed(1)
-                      : row.target}
-                  </td>
+                  {yKeys.map((k, i) => (
+                    <td
+                      key={k}
+                      style={
+                        i === yKeys.length - 1 ? { color: typeInfo.color } : {}
+                      }
+                    >
+                      {annualAvg(k)}
+                    </td>
+                  ))}
                   <td>
                     <span
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "4px",
-                        color: row.yoyChange <= 0 ? "#10b981" : "#ef4444",
-                        fontWeight: 600,
+                        color: "#10b981",
+                        fontWeight: 700,
                       }}
                     >
-                      {row.yoyChange <= 0 ? (
-                        <ArrowDown size={14} />
-                      ) : (
-                        <ArrowUp size={14} />
-                      )}
-                      {row.yoyChange}%
+                      {(() => {
+                        const prev = parseFloat(annualAvg(yKeys[yKeys.length - 2]));
+                        const curr = parseFloat(annualAvg(yKeys[yKeys.length - 1]));
+                        if (isNaN(prev) || isNaN(curr) || prev === 0) return "—";
+                        const pct = (((curr - prev) / prev) * 100).toFixed(1);
+                        return (
+                          <>
+                            {pct <= 0 ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+                            {pct}%
+                          </>
+                        );
+                      })()}
                     </span>
                   </td>
                 </tr>
-              ))}
-              {/* Annual Average Row */}
-              <tr
-                style={{
-                  borderTop: "2px solid var(--glass-border)",
-                  fontWeight: 700,
-                }}
-              >
-                <td style={{ color: "var(--text-primary)", fontWeight: 700 }}>
-                  Annual Avg
-                </td>
-                <td>{annualAvg("y2022")}</td>
-                <td>{annualAvg("y2023")}</td>
-                <td style={{ color: typeInfo.color }}>{annualAvg("y2024")}</td>
-                <td style={{ color: "#ef4444" }}>{annualAvg("target")}</td>
-                <td>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      color: "#10b981",
-                      fontWeight: 700,
-                    }}
-                  >
-                    <ArrowDown size={14} />{" "}
-                    {(
-                      ((parseFloat(annualAvg("y2024")) -
-                        parseFloat(annualAvg("y2023"))) /
-                        parseFloat(annualAvg("y2023"))) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
-const CustomTooltip = ({ active, payload, label, typeInfo }) => {
+const CustomTooltip = ({ active, payload, label, typeInfo, years }) => {
   if (!active || !payload?.length) return null;
   return (
     <div
@@ -342,12 +379,7 @@ const CustomTooltip = ({ active, payload, label, typeInfo }) => {
         {label}
       </p>
       {payload.map((p, i) => {
-        const labels = {
-          y2022: "2022",
-          y2023: "2023",
-          y2024: "2024",
-          target: "Target",
-        };
+        const yr = p.dataKey?.replace("y", "") || "";
         return (
           <p
             key={i}
@@ -360,7 +392,7 @@ const CustomTooltip = ({ active, payload, label, typeInfo }) => {
               gap: "16px",
             }}
           >
-            <span>{labels[p.dataKey] || p.dataKey}</span>
+            <span>{yr}</span>
             <span style={{ fontWeight: 600 }}>
               {typeof p.value === "number" ? p.value.toFixed(1) : p.value}{" "}
               {typeInfo?.unit}

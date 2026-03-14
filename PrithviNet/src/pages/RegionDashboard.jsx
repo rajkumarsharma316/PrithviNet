@@ -28,17 +28,8 @@ import {
   Trash2,
   Edit3,
 } from "lucide-react";
-import { REGIONS, REGION_DETAILS, getComplianceColor } from "../mockData";
 import { useAuth } from "../context/AuthContext";
-import { createIndustry, createMonitoringLocation } from "../api";
-
-const genTrend = () =>
-  Array.from({ length: 30 }, (_, i) => ({
-    day: `${i + 1}`,
-    aqi: Math.round(100 + Math.random() * 80 + Math.sin(i / 5) * 20),
-    ph: parseFloat((7.0 + Math.random() * 0.8 - 0.4).toFixed(1)),
-    noise: Math.round(55 + Math.random() * 25),
-  }));
+import { createIndustry, createMonitoringLocation, getRegionTrend } from "../api";
 
 const factoryIcon = (compliant) =>
   L.divIcon({
@@ -74,16 +65,14 @@ const RegionDashboard = () => {
   const [realIndustries, setRealIndustries] = useState([]);
   const [realStations, setRealStations] = useState([]);
   const [realAlerts, setRealAlerts] = useState([]);
+  const [trendData, setTrendData] = useState([]);
 
-  // For regional officers, use their assigned region. Fallback to Raipur for demo.
-  const regionId = user?.region?.id || "raipur";
-  const regionName = user?.region?.name || "Raipur";
-  const region =
-    REGIONS.find((r) => r.id === regionId || r.name === regionName) ||
-    REGIONS[0];
-  const detail = REGION_DETAILS[region.id] || REGION_DETAILS.raipur;
-  const color = getComplianceColor(region.compliance);
-  const trendData = genTrend();
+  // For regional officers, use their assigned region.
+  const regionId = user?.region?.id;
+  const regionName = user?.region?.name || "Unknown Region";
+  const regionDistrict = user?.region?.district || "—";
+  const regionLat = user?.region?.lat || 21.25;
+  const regionLng = user?.region?.lng || 81.63;
 
   React.useEffect(() => {
     import("../api").then(
@@ -92,7 +81,7 @@ const RegionDashboard = () => {
         getIndustries().then((res) => {
           if (res.ok) {
             const regional = res.data.filter(
-              (ind) => ind.regionId === region.id,
+              (ind) => ind.regionId === regionId,
             );
             setRealIndustries(regional);
           }
@@ -100,7 +89,7 @@ const RegionDashboard = () => {
         // Fetch stations
         getMonitoringLocations().then((res) => {
           if (res.ok) {
-            const regional = res.data.filter((st) => st.regionId === region.id);
+            const regional = res.data.filter((st) => st.regionId === regionId);
             setRealStations(regional);
           }
         });
@@ -109,15 +98,21 @@ const RegionDashboard = () => {
           if (res.ok) {
             const regional = res.data.filter(
               (a) =>
-                a.location?.region?.name === region.name ||
-                a.regionId === region.id,
+                a.location?.region?.name === regionName ||
+                a.regionId === regionId,
             );
             setRealAlerts(regional);
           }
         });
       },
     );
-  }, [region.id, region.name]);
+    // Fetch trend data
+    if (regionId) {
+      getRegionTrend(regionId).then((res) => {
+        if (res.ok && Array.isArray(res.data)) setTrendData(res.data);
+      });
+    }
+  }, [regionId, regionName]);
 
   const industries = realIndustries.map((ind) => ({
     id: ind.id,
@@ -125,7 +120,7 @@ const RegionDashboard = () => {
     type: ind.type,
     lat: ind.lat,
     lng: ind.lng,
-    region: region.name,
+    region: regionName,
     compliant: ind.status === "ACTIVE",
     violations: 0,
     status: ind.status,
@@ -133,6 +128,12 @@ const RegionDashboard = () => {
 
   const stations = realStations;
   const alerts = realAlerts;
+
+  // Compute real stats
+  const totalIndustries = industries.length;
+  const compliantCount = industries.filter(i => i.compliant).length;
+  const nonCompliantCount = totalIndustries - compliantCount;
+  const compliance = totalIndustries > 0 ? Math.round((compliantCount / totalIndustries) * 100) : 100;
 
   const updateIndStatus = async (id, status, text) => {
     import("../api").then(async ({ updateIndustry }) => {
@@ -223,7 +224,7 @@ const RegionDashboard = () => {
       >
         <div>
           <h2 style={{ fontSize: "1.5rem", margin: "0 0 4px" }}>
-            My Region: {region.name}
+            My Region: {regionName}
           </h2>
           <p
             style={{
@@ -232,14 +233,14 @@ const RegionDashboard = () => {
               margin: 0,
             }}
           >
-            Regional Officer Dashboard — {region.district} District
+            Regional Officer Dashboard — {regionDistrict} District
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
           <span
-            className={`status-badge ${region.compliance >= 80 ? "status-good" : region.compliance >= 60 ? "status-moderate" : "status-poor"}`}
+            className={`status-badge ${compliance >= 80 ? "status-good" : compliance >= 60 ? "status-moderate" : "status-poor"}`}
           >
-            Compliance: {region.compliance}%
+            Compliance: {compliance}%
           </span>
         </div>
       </div>
@@ -255,25 +256,25 @@ const RegionDashboard = () => {
         <MiniStat
           icon={<Factory size={18} />}
           label="Industries"
-          value={detail.industries.total}
+          value={totalIndustries}
           color="#3b82f6"
         />
         <MiniStat
           icon={<CheckCircle size={18} />}
           label="Compliant"
-          value={detail.industries.compliant}
+          value={compliantCount}
           color="#10b981"
         />
         <MiniStat
           icon={<XCircle size={18} />}
           label="Non-Compliant"
-          value={detail.industries.nonCompliant}
+          value={nonCompliantCount}
           color="#ef4444"
         />
         <MiniStat
           icon={<MapPin size={18} />}
           label="Stations"
-          value={detail.stations}
+          value={stations.length}
           color="#f59e0b"
         />
         <MiniStat
@@ -295,18 +296,18 @@ const RegionDashboard = () => {
       >
         <div className="glass-panel" style={{ overflow: "hidden" }}>
           <MapContainer
-            center={[region.lat, region.lng]}
+            center={[regionLat, regionLng]}
             zoom={11}
-            style={{ height: "100%", width: "100%", background: "#0a0f1c" }}
+            style={{ height: "100%", width: "100%", background: "#e8ecf1" }}
             zoomControl={false}
           >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
             <Circle
-              center={[region.lat, region.lng]}
+              center={[regionLat, regionLng]}
               radius={20000}
               pathOptions={{
                 color: "transparent",
-                fillColor: color,
+                fillColor: compliance >= 80 ? "#10b981" : compliance >= 60 ? "#f59e0b" : "#ef4444",
                 fillOpacity: 0.1,
               }}
             />
@@ -491,9 +492,15 @@ const RegionDashboard = () => {
                 vertical={false}
               />
               <XAxis
-                dataKey="day"
+                dataKey="date"
                 stroke="rgba(255,255,255,0.3)"
                 fontSize={10}
+                tickFormatter={(v) => {
+                  if (!v) return "";
+                  const d = new Date(v + "T00:00:00");
+                  return `${d.getDate()} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]}`;
+                }}
+                interval={Math.max(0, Math.floor(trendData.length / 6) - 1)}
               />
               <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
               <Tooltip

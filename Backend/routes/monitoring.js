@@ -70,6 +70,14 @@ export default async function monitoringRoutes(fastify, opts) {
         if (from) where.timestamp.gte = new Date(from);
         if (to) where.timestamp.lte = new Date(to);
       }
+      // Region filter for officers
+      if (request.user.role === "REGIONAL_OFFICER" && request.user.regionId) {
+        where.location = { ...where.location, regionId: request.user.regionId };
+      }
+      // Industry filter for industry users
+      if (request.user.role === "INDUSTRY_USER" && request.user.industryId) {
+        where.location = { ...where.location, industryId: request.user.industryId };
+      }
 
       const data = await fastify.prisma.airData.findMany({
         where,
@@ -148,6 +156,14 @@ export default async function monitoringRoutes(fastify, opts) {
         if (from) where.timestamp.gte = new Date(from);
         if (to) where.timestamp.lte = new Date(to);
       }
+      // Region filter for officers
+      if (request.user.role === "REGIONAL_OFFICER" && request.user.regionId) {
+        where.location = { ...where.location, regionId: request.user.regionId };
+      }
+      // Industry filter for industry users
+      if (request.user.role === "INDUSTRY_USER" && request.user.industryId) {
+        where.location = { ...where.location, industryId: request.user.industryId };
+      }
       const data = await fastify.prisma.waterData.findMany({
         where,
         include: {
@@ -221,6 +237,14 @@ export default async function monitoringRoutes(fastify, opts) {
         where.timestamp = {};
         if (from) where.timestamp.gte = new Date(from);
         if (to) where.timestamp.lte = new Date(to);
+      }
+      // Region filter for officers
+      if (request.user.role === "REGIONAL_OFFICER" && request.user.regionId) {
+        where.location = { ...where.location, regionId: request.user.regionId };
+      }
+      // Industry filter for industry users
+      if (request.user.role === "INDUSTRY_USER" && request.user.industryId) {
+        where.location = { ...where.location, industryId: request.user.industryId };
       }
       const data = await fastify.prisma.noiseData.findMany({
         where,

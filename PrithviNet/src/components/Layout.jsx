@@ -186,6 +186,11 @@ const Layout = () => {
                 label="Region Dashboard"
               />
               <SideLink
+                to="/monitoring-teams"
+                icon={<List size={18} />}
+                label="Monitoring Teams"
+              />
+              <SideLink
                 to="/alerts"
                 icon={<Bell size={18} />}
                 label="Alert Management"

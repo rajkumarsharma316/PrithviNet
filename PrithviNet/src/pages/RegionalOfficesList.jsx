@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -10,20 +10,35 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import {
-  REGIONS,
-  REGION_DETAILS,
-  getComplianceColor,
-  getComplianceLabel,
-  getRiskLevel,
-} from "../mockData";
+import { getRegionSummary } from "../api";
+
+const getComplianceColor = (c) =>
+  c >= 80 ? "#10b981" : c >= 60 ? "#f59e0b" : "#ef4444";
+const getComplianceLabel = (c) =>
+  c >= 80 ? "Good" : c >= 60 ? "Moderate" : "Poor";
+const getRiskLevel = (c) =>
+  c >= 80 ? "Low" : c >= 60 ? "Medium" : "High";
 
 const RegionalOfficesList = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const filtered = REGIONS.filter((r) =>
+  const [regions, setRegions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getRegionSummary().then((res) => {
+      if (res.ok) setRegions(res.data);
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = regions.filter((r) =>
     r.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  if (loading) {
+    return <div className="page-loading"><span className="spinner"></span></div>;
+  }
 
   return (
     <div
@@ -54,7 +69,7 @@ const RegionalOfficesList = () => {
               margin: 0,
             }}
           >
-            {REGIONS.length} offices across Chhattisgarh
+            {regions.length} offices across Chhattisgarh
           </p>
         </div>
         <div className="input-group compact" style={{ marginBottom: 0 }}>
@@ -70,7 +85,6 @@ const RegionalOfficesList = () => {
 
       <div className="data-grid">
         {filtered.map((region) => {
-          const detail = REGION_DETAILS[region.id] || {};
           const color = getComplianceColor(region.compliance);
           return (
             <div
@@ -191,42 +205,24 @@ const RegionalOfficesList = () => {
                 style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
               >
                 <div>
-                  <p
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-muted)",
-                      marginBottom: "2px",
-                    }}
-                  >
+                  <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "2px" }}>
                     Industries
                   </p>
                   <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                    {detail.industries?.total || "—"}
+                    {region.industries?.total || 0}
                   </p>
                 </div>
                 <div>
-                  <p
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-muted)",
-                      marginBottom: "2px",
-                    }}
-                  >
+                  <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "2px" }}>
                     Stations
                   </p>
                   <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                    {detail.stations || "—"}
+                    {region.stationsCount || 0}
                   </p>
                 </div>
                 <div>
-                  <p
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-muted)",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    Trend
+                  <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "2px" }}>
+                    Compliant
                   </p>
                   <p
                     style={{
@@ -235,19 +231,10 @@ const RegionalOfficesList = () => {
                       display: "flex",
                       alignItems: "center",
                       gap: "4px",
-                      color:
-                        detail.trend?.direction === "up"
-                          ? "#10b981"
-                          : "#ef4444",
+                      color: region.compliance >= 60 ? "#10b981" : "#ef4444",
                     }}
                   >
-                    {detail.trend?.direction === "up" ? (
-                      <TrendingUp size={14} />
-                    ) : (
-                      <TrendingDown size={14} />
-                    )}
-                    {detail.trend?.change > 0 ? "+" : ""}
-                    {detail.trend?.change}%
+                    {region.industries?.compliant || 0}/{region.industries?.total || 0}
                   </p>
                 </div>
               </div>

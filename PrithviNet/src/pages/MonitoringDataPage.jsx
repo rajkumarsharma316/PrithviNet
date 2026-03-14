@@ -48,7 +48,7 @@ export default function MonitoringDataPage() {
 
   const canSubmit =
     user &&
-    ["MONITORING_TEAM", "SUPER_ADMIN", "REGIONAL_OFFICER"].includes(user.role);
+    ["MONITORING_TEAM"].includes(user.role);
 
   return (
     <div>
