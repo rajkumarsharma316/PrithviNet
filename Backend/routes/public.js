@@ -62,6 +62,7 @@ export default async function publicRoutes(fastify, opts) {
   // ── GET /api/public/map-data/:type ────────────────────
   // Returns latest reading per monitoring location for map markers
   fastify.get("/map-data/:type", async (request, reply) => {
+    reply.header("Cache-Control", "no-store, no-cache");
     const { type } = request.params; // air, water, noise
 
     const locations = await fastify.prisma.monitoringLocation.findMany({
@@ -166,6 +167,7 @@ export default async function publicRoutes(fastify, opts) {
   // ── GET /api/public/region-summary ─────────────────────
   // Returns all regions with computed stats from real data
   fastify.get("/region-summary", async (request, reply) => {
+    reply.header("Cache-Control", "no-store, no-cache");
     const regions = await fastify.prisma.regionalOffice.findMany({
       include: {
         industries: {

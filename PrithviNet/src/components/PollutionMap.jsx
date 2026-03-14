@@ -62,6 +62,45 @@ const getMarkerScale = (zoom) =>
 /* Pin-style markers (regions, industries, stations) use larger base size to match value circles */
 const PIN_BASE = 28;
 
+/* Chhattisgarh state boundary — GeoJSON outline, highlighted fill */
+const CHHATTISGARH_GEOJSON_URL =
+  "https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/geojson/states/chhattisgarh.geojson";
+
+function ChhattisgarhBoundaryLayer() {
+  const map = useMap();
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(CHHATTISGARH_GEOJSON_URL)
+      .then((res) => res.json())
+      .then((geojson) => {
+        if (cancelled || !map) return;
+        if (layerRef.current) {
+          map.removeLayer(layerRef.current);
+        }
+        layerRef.current = L.geoJSON(geojson, {
+          style: {
+            color: "#1565c0",
+            fillColor: "#1565c0",
+            fillOpacity: 0.12,
+            weight: 2.5,
+            opacity: 0.6,
+          },
+        }).addTo(map);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+    };
+  }, [map]);
+  return null;
+}
+
 /* ────────── Icon factories (IQAir-inspired, zoom-scaled) ────────── */
 const regionIcon = (color, score, zoom = 7) => {
   const s = getMarkerScale(zoom);
@@ -213,13 +252,42 @@ const stationPin = (type, zoom = 7) => {
   });
 };
 
-const valuePin = (value, zoom = 7) => {
+/* Danger-level colors for AQI / pH / Noise value pins */
+function getDangerColor(type, numericValue) {
+  const n = Number(numericValue);
+  if (type === "air") {
+    // AQI: 0–50 Good, 51–100 Moderate, 101–150 Unhealthy (sensitive), 151–200 Unhealthy, 201+ Hazardous
+    if (Number.isNaN(n) || n <= 0) return { color: "#94a3b8", label: "N/A" };
+    if (n <= 50) return { color: "#22c55e", label: "Good" };
+    if (n <= 100) return { color: "#eab308", label: "Moderate" };
+    if (n <= 150) return { color: "#f97316", label: "Unhealthy (sensitive)" };
+    if (n <= 200) return { color: "#ef4444", label: "Unhealthy" };
+    return { color: "#991b1b", label: "Hazardous" };
+  }
+  if (type === "water") {
+    // pH: 6.5–8.5 Good, 6–6.5 or 8.5–9 Caution, <6 or >9 Danger
+    if (Number.isNaN(n) || n <= 0) return { color: "#94a3b8", label: "N/A" };
+    if (n >= 6.5 && n <= 8.5) return { color: "#22c55e", label: "Good" };
+    if ((n >= 6 && n < 6.5) || (n > 8.5 && n <= 9)) return { color: "#eab308", label: "Caution" };
+    return { color: "#ef4444", label: "Danger" };
+  }
+  if (type === "noise") {
+    // dB(A): <55 Good, 55–75 Moderate, >75 Danger
+    if (Number.isNaN(n) || n <= 0) return { color: "#94a3b8", label: "N/A" };
+    if (n < 55) return { color: "#22c55e", label: "Good" };
+    if (n <= 75) return { color: "#eab308", label: "Moderate" };
+    return { color: "#ef4444", label: "Danger" };
+  }
+  return { color: "#3b82f6", label: "" };
+}
+
+const valuePin = (value, zoom = 7, color = "#3b82f6") => {
   const s = getMarkerScale(zoom);
   const size = Math.round(32 * s);
   const font = Math.max(9, Math.round(11 * s));
   return L.divIcon({
     className: "",
-    html: `<div style="background:#3b82f6;border:2px solid white;color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:${font}px;box-shadow:0 0 12px rgba(59,130,246,0.5)">${value || "–"}</div>`,
+    html: `<div style="background:${color};border:2px solid white;color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:${font}px;box-shadow:0 0 12px rgba(0,0,0,0.35)">${value || "–"}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2],
@@ -544,6 +612,8 @@ const PollutionMap = () => {
             attribution="&copy; OpenStreetMap &copy; CARTO"
           />
 
+          <ChhattisgarhBoundaryLayer />
+
           {/* ── Optional Heatmap Layer (disabled by default) ── */}
           {showHeatmap && <HeatmapLayer points={heatPoints} />}
 
@@ -796,9 +866,9 @@ const PollutionMap = () => {
               </Marker>
             ))}
 
-          {/* ── Monitoring station markers ── */}
-          {showStations &&
-            stations.map((stn) => (
+          {/* ── Monitoring station markers (show when Stations layer is on) ── */}
+            {showStations &&
+              stations.map((stn) => (
               <Marker
                 key={stn.id}
                 position={[stn.lat, stn.lng]}
@@ -883,21 +953,31 @@ const PollutionMap = () => {
               </Marker>
             ))}
 
-          {/* ── API data markers ── */}
+          {/* ── API data markers (colored by danger level) ── */}
           {mapData.map((loc) => {
             const r = loc.latestReading;
             if (!r) return null;
+            const numericValue =
+              activeTab === "air"
+                ? r.aqi
+                : activeTab === "water"
+                  ? r.ph
+                  : r.laeq;
             const value =
               activeTab === "air"
-                ? r.aqi?.toFixed(0)
+                ? r.aqi != null ? r.aqi.toFixed(0) : "–"
                 : activeTab === "water"
-                  ? r.ph?.toFixed(1)
-                  : r.laeq?.toFixed(0);
+                  ? r.ph != null ? r.ph.toFixed(1) : "–"
+                  : r.laeq != null ? r.laeq.toFixed(0) : "–";
+            const { color: dangerColor, label: dangerLabel } = getDangerColor(
+              activeTab,
+              numericValue
+            );
             return (
               <Marker
                 key={loc.id}
                 position={[loc.lat || 21.25, loc.lng || 81.62]}
-                icon={valuePin(value || "–", zoom)}
+                icon={valuePin(value || "–", zoom, dangerColor)}
               >
                 <Popup className="custom-popup">
                   <div
@@ -925,6 +1005,18 @@ const PollutionMap = () => {
                           ? "pH"
                           : "dB(A)"}
                     </p>
+                    {dangerLabel && (
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          color: dangerColor,
+                        }}
+                      >
+                        {dangerLabel}
+                      </p>
+                    )}
                   </div>
                 </Popup>
               </Marker>

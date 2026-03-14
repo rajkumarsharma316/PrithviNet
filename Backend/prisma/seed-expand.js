@@ -236,12 +236,15 @@ async function main() {
   const locations = {};
   for (const loc of locationDefs) {
     const key = `${loc.code}|${loc.name}`;
-    // Use create or findFirst+upsert since name is not unique
     const existing = await prisma.monitoringLocation.findFirst({
       where: { name: loc.name, regionId: offices[loc.code].id },
     });
     if (existing) {
-      locations[key] = existing;
+      // Always set exact coords so stations have correct lat/lng
+      locations[key] = await prisma.monitoringLocation.update({
+        where: { id: existing.id },
+        data: { lat: loc.lat, lng: loc.lng },
+      });
     } else {
       locations[key] = await prisma.monitoringLocation.create({
         data: {

@@ -10,6 +10,9 @@
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",
+    "db:spread-points": "node prisma/spread-points-cg.js",
+    "db:restore-coords": "node prisma/restore-original-coordinates.js",
+    "db:reset-reseed": "node prisma/reset-and-reseed.js",
     "db:studio": "npx prisma studio"
   },
   "dependencies": {
