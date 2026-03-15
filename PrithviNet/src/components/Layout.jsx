@@ -5,7 +5,6 @@ import { ChatProvider } from "../context/ChatContext";
 import {
   LayoutDashboard,
   Map as MapIcon,
-  Activity,
   AlertTriangle,
   Wind,
   Droplets,
@@ -28,6 +27,7 @@ import {
   Sparkles,
   FileText,
 } from "lucide-react";
+import PrithviNetLogo from "./PrithviNetLogo";
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -52,7 +52,7 @@ const Layout = () => {
           <div className="sidebar-govt-header">
             <div className="sidebar-govt-header-inner">
               <div className="sidebar-logo-icon">
-                <Activity size={20} color="#fff" />
+                <PrithviNetLogo width={56} height={56} />
               </div>
               <div>
                 <div className="sidebar-govt-label">Government of Chhattisgarh</div>

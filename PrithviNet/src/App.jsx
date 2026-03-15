@@ -8,9 +8,8 @@ import {
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./components/Layout";
 
-// Auth pages
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
+// Auth (combined login + register side-by-side)
+import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
 
 // Monitoring data pages
@@ -56,9 +55,9 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Auth pages (no sidebar) */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          {/* Auth: login + register side-by-side with sliding blue */}
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
 
           {/* Main app with sidebar layout */}
           <Route path="/" element={<Layout />}>

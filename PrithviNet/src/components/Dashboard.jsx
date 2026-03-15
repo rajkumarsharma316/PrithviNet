@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Map as MapIcon,
   LayoutDashboard,
-  Activity,
   AlertTriangle,
   Settings,
   User,
@@ -10,6 +9,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react";
+import PrithviNetLogo from "./PrithviNetLogo";
 import MonitoringCards from "./MonitoringCards";
 import PollutionMap from "./PollutionMap";
 import ForecastCharts from "./ForecastCharts";
@@ -32,19 +32,7 @@ const Dashboard = () => {
             marginBottom: "48px",
           }}
         >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              background: "var(--govt-blue)",
-              borderRadius: "2px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Activity size={24} color="white" />
-          </div>
+          <PrithviNetLogo width={40} height={40} />
           <h1
             className="glow-text"
             style={{

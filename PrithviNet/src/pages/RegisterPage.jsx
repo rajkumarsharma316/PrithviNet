@@ -14,14 +14,6 @@ import {
   FileText,
 } from "lucide-react";
 
-const ROLES = [
-  "CITIZEN",
-  "INDUSTRY_USER",
-  "MONITORING_TEAM",
-  "REGIONAL_OFFICER",
-  "SUPER_ADMIN",
-];
-
 export default function RegisterPage() {
   const { registerUser } = useAuth();
   const navigate = useNavigate();
@@ -29,7 +21,7 @@ export default function RegisterPage() {
     name: "",
     email: "",
     password: "",
-    role: "CITIZEN",
+    role: "INDUSTRY_USER",
   });
   const [industryForm, setIndustryForm] = useState({
     industryName: "",
@@ -47,17 +39,17 @@ export default function RegisterPage() {
   const updateInd = (key, val) =>
     setIndustryForm((f) => ({ ...f, [key]: val }));
 
-  const isIndustry = form.role === "INDUSTRY_USER";
+  const isIndustry = true; // Registration is industry-only
 
   // Fetch regions for the dropdown
   useEffect(() => {
-    if (isIndustry && regions.length === 0) {
+    if (regions.length === 0) {
       getRegionalOffices().then((r) => {
         if (r.ok) setRegions(r.data);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isIndustry]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,7 +97,7 @@ export default function RegisterPage() {
                 margin: "4px 0 0",
               }}
             >
-              Create your account
+              Register your industry unit
             </p>
           </div>
 
@@ -143,23 +135,9 @@ export default function RegisterPage() {
                 minLength={6}
               />
             </div>
-            <div className="input-group">
-              <ChevronDown size={16} className="input-icon" />
-              <select
-                value={form.role}
-                onChange={(e) => update("role", e.target.value)}
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {/* Industry fields — only when INDUSTRY_USER is selected */}
-            {isIndustry && (
-              <div
+            {/* Industry details (registration is industry-only) */}
+            <div
                 style={{
                   padding: "16px",
                   marginTop: "8px",
@@ -259,7 +237,6 @@ export default function RegisterPage() {
                   </select>
                 </div>
               </div>
-            )}
 
             <button
               type="submit"
@@ -271,10 +248,7 @@ export default function RegisterPage() {
                 <span className="spinner"></span>
               ) : (
                 <>
-                  <UserPlus size={16} />{" "}
-                  {isIndustry
-                    ? "Register & Submit for Approval"
-                    : "Create Account"}
+                  <UserPlus size={16} /> Register & Submit for Approval
                 </>
               )}
             </button>
