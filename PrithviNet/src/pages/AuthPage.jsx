@@ -13,6 +13,11 @@ import {
   MapPin,
   FileText,
   Cog,
+  Wind,
+  Droplets,
+  Volume2,
+  BarChart3,
+  Shield,
 } from "lucide-react";
 import PrithviNetLogo from "../components/PrithviNetLogo";
 
@@ -49,7 +54,7 @@ export default function AuthPage() {
             {activeSide === "login" ? (
               <LoginForm onSuccess={() => navigate("/dashboard")} />
             ) : (
-              <SwitchButton label="Login" onClick={switchToLogin} />
+              <WelcomePanel switchLabel="Login" onSwitch={switchToLogin} />
             )}
           </div>
         </div>
@@ -58,7 +63,7 @@ export default function AuthPage() {
             {activeSide === "register" ? (
               <RegisterForm onSuccess={() => navigate("/dashboard")} />
             ) : (
-              <SwitchButton label="Register" onClick={switchToRegister} />
+              <WelcomePanel switchLabel="Register" onSwitch={switchToRegister} />
             )}
           </div>
         </div>
@@ -77,7 +82,38 @@ function SwitchButton({ label, onClick }) {
   );
 }
 
+function WelcomePanel({ switchLabel, onSwitch }) {
+  return (
+    <div className="auth-panel-welcome">
+      <div className="auth-panel-welcome-logo-wrap">
+        <PrithviNetLogo className="auth-panel-welcome-logo" width={320} height={192} />
+      </div>
+      <p className="auth-welcome-badge">Government of Chhattisgarh</p>
+      <h1 className="auth-welcome-title">Welcome to PrithviNet</h1>
+      <p className="auth-welcome-tagline">
+        Environmental monitoring & transparency portal for Chhattisgarh. View real-time air, water and noise data, industry compliance, and regional insights.
+      </p>
+      <ul className="auth-welcome-features">
+        <li><Wind size={18} aria-hidden /> Air quality (AQI) & pollution monitoring</li>
+        <li><Droplets size={18} aria-hidden /> Water quality & prescribed limits</li>
+        <li><Volume2 size={18} aria-hidden /> Noise level tracking</li>
+        <li><BarChart3 size={18} aria-hidden /> Public dashboard & trends</li>
+        <li><Shield size={18} aria-hidden /> Industry registration & compliance</li>
+      </ul>
+      <p className="auth-welcome-footer">
+        Sign in to access your dashboard, or explore the public portal without logging in.
+      </p>
+      <div className="auth-split-switch-wrap auth-panel-welcome-switch">
+        <button type="button" className="auth-split-switch-btn" onClick={onSwitch}>
+          <span>{switchLabel}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LoginForm({ onSuccess }) {
+  const navigate = useNavigate();
   const { loginUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,7 +139,7 @@ function LoginForm({ onSuccess }) {
     <div className="auth-split-form-wrap">
       <div className="auth-split-title-band">
         <div className="auth-split-form-header">
-          <PrithviNetLogo className="auth-split-form-logo" width={80} height={48} />
+          <PrithviNetLogo className="auth-split-form-logo" width={140} height={84} />
           <h2 className="auth-split-form-title">Login</h2>
           <p className="auth-split-form-tagline">PrithviNet</p>
         </div>
@@ -168,6 +204,15 @@ function LoginForm({ onSuccess }) {
             </div>
           </div>
         </form>
+      </div>
+      <div className="auth-view-dashboard-wrap">
+        <button
+          type="button"
+          className="auth-view-dashboard-btn"
+          onClick={() => navigate("/dashboard")}
+        >
+          View dashboard (no login)
+        </button>
       </div>
     </div>
   );
@@ -247,7 +292,7 @@ function RegisterForm({ onSuccess }) {
     <div className="auth-split-form-wrap auth-split-form-wrap-register">
       <div className="auth-split-title-band">
         <div className="auth-split-form-header">
-          <PrithviNetLogo className="auth-split-form-logo" width={80} height={48} />
+          <PrithviNetLogo className="auth-split-form-logo" width={140} height={84} />
           <h2 className="auth-split-form-title">Register</h2>
           <p className="auth-split-form-tagline">Industry unit</p>
         </div>

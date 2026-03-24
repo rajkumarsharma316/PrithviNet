@@ -536,7 +536,8 @@ body::before {
   justify-content: center;
   padding: 24px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-image:
     linear-gradient(145deg, rgba(232, 240, 247, 0.82) 0%, rgba(224, 238, 245, 0.82) 30%, rgba(232, 244, 240, 0.82) 70%, rgba(240, 238, 247, 0.82) 100%),
     url("/background-pattern.jpg");
@@ -617,6 +618,98 @@ body::before {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(15px, -12px) scale(1.03); }
   66% { transform: translate(-10px, 8px) scale(0.99); }
+}
+
+/* Welcome content inside inactive panel (login/register side) */
+.auth-panel-welcome {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0 0;
+  overflow-y: auto;
+  color: var(--text-primary);
+}
+
+.auth-panel-welcome-logo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.auth-panel-welcome-logo {
+  width: 320px;
+  height: 192px;
+  object-fit: contain;
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+.auth-panel-welcome .auth-welcome-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--govt-blue);
+  margin: 0 0 10px;
+}
+
+.auth-panel-welcome .auth-welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--govt-blue-dark);
+  margin: 0 0 12px;
+  line-height: 1.25;
+}
+
+.auth-panel-welcome .auth-welcome-tagline {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+}
+
+.auth-panel-welcome .auth-welcome-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  flex-shrink: 0;
+}
+.auth-panel-welcome .auth-welcome-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  line-height: 1.4;
+}
+.auth-panel-welcome .auth-welcome-features li:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+.auth-panel-welcome .auth-welcome-features li svg {
+  flex-shrink: 0;
+  color: var(--govt-blue);
+}
+
+.auth-panel-welcome .auth-welcome-footer {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 24px;
+  padding-top: 4px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.auth-panel-welcome-switch {
+  margin-top: auto;
+  flex-shrink: 0;
+  padding-top: 16px;
 }
 
 .auth-split-card {
@@ -1204,6 +1297,30 @@ body::before {
   box-shadow: none;
 }
 
+.auth-view-dashboard-wrap {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.auth-view-dashboard-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.auth-view-dashboard-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ─── Epic Login Page (mechanical / fill-up animations) ─── */
 .login-page {
   min-height: 100vh;
@@ -1686,7 +1803,7 @@ body::before {
 }
 
 .data-card {
-  padding: 20px;
+  padding: 14px;
 }
 
 .param-grid {

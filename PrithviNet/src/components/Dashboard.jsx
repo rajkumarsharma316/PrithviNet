@@ -32,7 +32,7 @@ const Dashboard = () => {
             marginBottom: "48px",
           }}
         >
-          <PrithviNetLogo width={40} height={40} />
+          <PrithviNetLogo width={72} height={72} />
           <h1
             className="glow-text"
             style={{

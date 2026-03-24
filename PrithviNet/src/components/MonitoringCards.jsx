@@ -234,12 +234,12 @@ const MonitoringCards = () => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "12px",
         }}
       >
         <StatCard
-          icon={<MapPin size={20} />}
+          icon={<MapPin size={18} />}
           label="Monitoring Locations"
           value={stats?.totalLocations ?? "—"}
           color="#10b981"
@@ -255,7 +255,7 @@ const MonitoringCards = () => {
           onClick={() => navigate("/industries-list")}
         />
         <StatCard
-          icon={<BarChart3 size={20} />}
+          icon={<BarChart3 size={18} />}
           label="Regional Offices"
           value={stats?.totalRegions ?? "—"}
           color="#f59e0b"
@@ -263,7 +263,7 @@ const MonitoringCards = () => {
           onClick={() => navigate("/offices-list")}
         />
         <StatCard
-          icon={<AlertCircle size={20} />}
+          icon={<AlertCircle size={18} />}
           label="Active Alerts"
           value={stats?.activeAlerts ?? "—"}
           color="#ef4444"
@@ -276,25 +276,25 @@ const MonitoringCards = () => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "16px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "12px",
         }}
       >
-        <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3 className="heading-box" style={{ fontSize: "0.85rem", marginBottom: "14px" }}>
+        <div className="glass-panel" style={{ padding: "14px" }}>
+          <h3 className="heading-box" style={{ fontSize: "0.8rem", marginBottom: "10px" }}>
             Compliance Overview
           </h3>
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-              marginBottom: "14px",
-            }}
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "10px",
+          }}
+        >
+          <div
+            style={{ position: "relative", width: "52px", height: "52px" }}
           >
-            <div
-              style={{ position: "relative", width: "64px", height: "64px" }}
-            >
               <svg
                 viewBox="0 0 36 36"
                 style={{
@@ -329,7 +329,7 @@ const MonitoringCards = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "0.85rem",
+                  fontSize: "0.75rem",
                   fontWeight: 700,
                 }}
               >
@@ -370,11 +370,11 @@ const MonitoringCards = () => {
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "14px", fontWeight: 500 }}>
+        <div className="glass-panel" style={{ padding: "14px" }}>
+          <h3 style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "10px", fontWeight: 500 }}>
             Alert Summary
           </h3>
-          <div style={{ display: "flex", gap: "16px" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
             <AlertBubble
               label="Critical"
               count={criticalAlerts}
@@ -393,8 +393,8 @@ const MonitoringCards = () => {
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: "20px" }}>
-          <h3 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "14px", fontWeight: 500 }}>
+        <div className="glass-panel" style={{ padding: "14px" }}>
+          <h3 style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "10px", fontWeight: 500 }}>
             Quick Stats
           </h3>
           <div
@@ -416,8 +416,8 @@ const MonitoringCards = () => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "24px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "14px",
         }}
       >
         {/* Air Quality Card */}
@@ -581,17 +581,17 @@ const MonitoringCards = () => {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "20px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "14px",
           }}
         >
           {/* AQI Trend (Line) — illustrative weekly pattern from current AQI */}
-          <div className="glass-panel" style={{ padding: "20px" }}>
-            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>AQI Trend (weekly pattern)</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+          <div className="glass-panel" style={{ padding: "14px" }}>
+            <h4 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>AQI Trend (weekly pattern)</h4>
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "8px", marginTop: 0 }}>
               Illustrative pattern from current AQI; use time-series data when available
             </p>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={180}>
               <LineChart data={aqiTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
@@ -616,12 +616,12 @@ const MonitoringCards = () => {
           </div>
 
           {/* Water Parameters (Radar) — normalized quality 0–100 from latest reading */}
-          <div className="glass-panel" style={{ padding: "20px" }}>
-            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Water Parameters</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+          <div className="glass-panel" style={{ padding: "14px" }}>
+            <h4 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Water Parameters</h4>
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "8px", marginTop: 0 }}>
               Normalized quality (0–100) from latest reading
             </p>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={180}>
               <RadarChart data={waterRadarData}>
                 <PolarGrid stroke="rgba(0,0,0,0.15)" />
                 <PolarAngleAxis
@@ -650,9 +650,9 @@ const MonitoringCards = () => {
           </div>
 
           {/* Noise Variation (Area) — illustrative daily pattern */}
-          <div className="glass-panel" style={{ padding: "20px" }}>
-            <h4 style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Noise (daily pattern)</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px", marginTop: 0 }}>
+          <div className="glass-panel" style={{ padding: "14px" }}>
+            <h4 style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 500 }}>Noise (daily pattern)</h4>
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "8px", marginTop: 0 }}>
               Illustrative pattern from current level; use hourly data when available
             </p>
             <ResponsiveContainer width="100%" height={220}>
@@ -698,13 +698,13 @@ const MonitoringCards = () => {
           <div
             className="glass-panel"
             style={{
-              padding: "28px 32px",
+              padding: "18px 20px",
               width: "100%",
-              maxWidth: "380px",
+              maxWidth: "320px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
             }}
           >
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={220}>
               {alertsPieData.length > 0 ? (
                 <PieChart>
                   <Pie
@@ -713,8 +713,8 @@ const MonitoringCards = () => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
+                    innerRadius={48}
+                    outerRadius={80}
                     paddingAngle={2}
                     label={({ name, value }) => `${name}: ${value}`}
                   >
@@ -773,19 +773,19 @@ const StatCard = ({ icon, label, value, color, loading, onClick }) => (
     className="glass-panel"
     onClick={onClick}
     style={{
-      padding: "20px",
+      padding: "12px 14px",
       display: "flex",
       alignItems: "center",
-      gap: "16px",
+      gap: "10px",
       cursor: onClick ? "pointer" : "default",
       transition: "all 0.2s",
     }}
   >
     <div
       style={{
-        width: "44px",
-        height: "44px",
-        borderRadius: "12px",
+        width: "36px",
+        height: "36px",
+        borderRadius: "10px",
         background: `${color}15`,
         border: `1px solid ${color}30`,
         display: "flex",
@@ -797,8 +797,8 @@ const StatCard = ({ icon, label, value, color, loading, onClick }) => (
       {icon}
     </div>
     <div>
-      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>{label}</p>
-      <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, fontFamily: "var(--font-display)" }}>
+      <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "2px" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-display)" }}>
         {loading ? (
           <span className="spinner" style={{ width: "14px", height: "14px" }}></span>
         ) : (
@@ -814,15 +814,15 @@ const AlertBubble = ({ label, count, color }) => (
     style={{
       flex: 1,
       textAlign: "center",
-      padding: "12px 8px",
-      borderRadius: "10px",
+      padding: "8px 6px",
+      borderRadius: "8px",
       background: `${color}08`,
       border: `1px solid ${color}20`,
     }}
   >
     <p
       style={{
-        fontSize: "1.4rem",
+        fontSize: "1.2rem",
         fontWeight: 700,
         color,
         margin: "0 0 2px",
@@ -862,10 +862,10 @@ const Card = ({
     <div
       className="glass-panel"
       style={{
-        padding: "24px",
+        padding: "14px 16px",
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: "12px",
       }}
     >
       <div
